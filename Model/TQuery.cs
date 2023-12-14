@@ -6,10 +6,11 @@ namespace AVSearch
 	using AVXLib.Framework;
 	public class TQuery
 	{
-		private Blueprint blueprint;
+		private QStatement blueprint;
 
-		public TQuery(ref Blueprint blueprint)
+		public TQuery(in QStatement blueprint)
 		{
+            this.query_id = Guid.NewGuid();
 			this.blueprint = blueprint;
 		}
 		public byte book_cnt					{ get; private set; }
@@ -18,7 +19,7 @@ namespace AVSearch
         public UInt64 chapter_hits				{ get; private set; }
 		public UInt32 error_code				{ get; private set; }
 		public List<TExpression> expressions	{ get; private set; }
-        public UInt64 query_id					{ get; private set; }
+        public Guid query_id					{ get; private set; }
 		public TSettings settings				{ get; private set; }
         public UInt64 total_hits				{ get; private set; }
         public UInt64 verse_hits				{ get; private set; }

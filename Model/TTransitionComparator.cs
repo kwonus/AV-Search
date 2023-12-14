@@ -8,7 +8,7 @@ namespace AVSearch
 	public class TTransitionComparator : TComparator
 	{
 		public byte Tran { get; private set; }
-		TTransitionComparator(ref QFeature feature) : base(ref feature)
+		public TTransitionComparator(ref QFeature feature) : base(ref feature)
 		{
 			;
 		}

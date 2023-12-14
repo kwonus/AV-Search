@@ -7,7 +7,7 @@ namespace AVSearch
     public class TDeltaComparator : TComparator
     {
 	    public bool delta { get; private set; }
-	    TDeltaComparator(ref QFeature feature) : base(ref feature)
+	    public TDeltaComparator(ref QFeature feature) : base(ref feature)
         {
             ;
         }

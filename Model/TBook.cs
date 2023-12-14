@@ -18,7 +18,7 @@ namespace AVSearch
         public UInt64 total_hits   	{ get; private set; }
         public UInt64 verse_hits    { get; private set; }
 
-		public Dictionary<byte, UInt64> verse_hits_by_chapter;
+		public Dictionary<byte, byte> verse_hits_by_chapter;
 		public string fetch(byte chapter_num)
 		{
 			return string.Empty;

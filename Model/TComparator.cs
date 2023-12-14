@@ -4,7 +4,6 @@ namespace AVSearch
     using AVXLib;
     using System;
     using AVXLib.Framework;
-    using System.Xml.Linq;
 
     public interface IComparator
     {
@@ -22,50 +21,41 @@ namespace AVSearch
         }
         public static TComparator Create(ref QFeature feature)
         {
-            auto feature = node["Text"].GetString();
-
-            if (feature != nullptr)
+            if (feature.Type.Equals("Word", StringComparison.InvariantCultureIgnoreCase) || feature.Type.Equals("Wildcard", StringComparison.InvariantCultureIgnoreCase))
             {
-                auto type = node["Type"].GetString();
-
-                if (std::strncmp(type, "Word", 4) == 0 || std::strncmp(type, "Wildcard", 8) == 0)
-                {
-                    return new TWordComparator(node);
-                }
-                if (std::strncmp(type, "PartOfSpeech", 12) == 0)
-                {
-                    if (node.HasMember("PnPos12") && (node["PnPos12"].GetUint() > 0))
-                        return new TPOS16Comparator(node);
-                    if (node.HasMember("Pos32") && (node["Pos32"].GetUint() > 0))
-                        return new TPOS32Comparator(node);
-
-                    return new TComparator(node, false);
-                }
-                if (std::strncmp(type, "Lemma", 8) == 0)
-                {
-                    return new TLemmaComparator(node);
-                }
-                if (std::strncmp(type, "Delta", 8) == 0)
-                {
-                    return new TDeltaComparator(node);
-                }
-                if (std::strncmp(type, "Punctuation", 11) || std::strncmp(type, "Decoration", 10) == 0)
-                {
-                    return new TPuncComparator(node);
-                }
-                if (std::strncmp(type, "Strongs", 8) == 0)
-                {
-                    return new TStrongsComparator(node);
-                }
-                if (std::strncmp(type, "Transition", 8) == 0)
-                {
-                    return new TTransitionComparator(node);
-                }
+                return new TWordComparator(ref feature);
+            }
+            if (feature.Type.Equals("PartOfSpeech", StringComparison.InvariantCultureIgnoreCase))
+            {
+                if (((QPartOfSpeech)feature).Pos32 != 0)
+                    return new TPOS32Comparator(ref feature);
+                else
+                    return new TPOS16Comparator(ref feature);
+            }
+            if (feature.Type.Equals("Lemma", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return new TLemmaComparator(ref feature);
+            }
+            if (feature.Type.Equals("Delta", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return new TDeltaComparator(ref feature);
+            }
+            if (feature.Type.Equals("Punctuation", StringComparison.InvariantCultureIgnoreCase) || feature.Type.Equals("Decoration", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return new TPuncComparator(ref feature);
+            }
+            if (feature.Type.Equals("Strongs", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return new TStrongsComparator(ref feature);
+            }
+            if (feature.Type.Equals("Transition", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return new TTransitionComparator(ref feature);
             }
             return new TComparator(ref feature, false); // comparisons are ALWAYS false in the base-class; this is a fail-safely error condition
         }
 
-        public virtual UInt16 compare(ref Written writ, ref TMatch match, ref TTag tag)
+        public virtual UInt16 compare(ref AVXLib.Framework.Written writ, ref TMatch match, ref TTag tag)
         {
             return 0;
         }

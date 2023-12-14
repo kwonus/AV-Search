@@ -8,23 +8,33 @@ namespace AVSearch
 			;
 		}
 
-		public Dictionary <UInt64, TQuery> queries;
+		public Dictionary <Guid, Dictionary<Guid, TQuery>> ClientQueries;
 
-		public TQuery? create(Blueprint blueprint)
+		public TQuery Create(in Guid client_id, in QStatement blueprint)
 		{
-			return null;
+			var query = new TQuery(blueprint);
+			return query;
 		}
-		public bool add_scope(UInt64 query_id, byte book, byte chapter, byte verse_from, byte verse_to)
-		{
+        public bool ReleaseAll(in Guid client_id)
+        {
+			var client = ClientQueries[client_id];
+			if (client != null)
+			{
+				client.Clear();
+                ClientQueries.Remove(client_id);
+				return true;
+            }
 			return false;
-		}
-		public string fetch(UInt64 query_id)
-		{
-			return string.Empty;
-		}
-		public string fetch(UInt64 query_id, byte book, byte chapter)
-		{
-			return string.Empty;
-		}
+        }
+        public bool ReleaseQuery(in Guid client_id, in Guid query_id)
+        {
+            var client = ClientQueries[client_id];
+            if ((client != null) && client.ContainsKey(query_id))
+			{
+				client.Remove(query_id);
+				return true;
+			}
+            return false;
+        }
 	}
 }
