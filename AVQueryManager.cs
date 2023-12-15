@@ -10,9 +10,9 @@ namespace AVSearch
 
 		public Dictionary <Guid, Dictionary<Guid, TQuery>> ClientQueries;
 
-		public TQuery Create(in Guid client_id, in QStatement blueprint)
+		public TQuery Create(in Guid client_id, in List<QFind> expressions)
 		{
-			var query = new TQuery(blueprint);
+			var query = new TQuery(expressions);
 			return query;
 		}
         public bool ReleaseAll(in Guid client_id)

@@ -7,9 +7,10 @@ namespace AVSearch
 
 	public class TExpression
 	{
-		public TExpression(ref QFind exp, UInt16 exp_idx)
+		public TExpression(in QFind exp, UInt16 exp_idx)
 		{
 			this.fragments = new();
+			this.expression_idx = exp_idx;
 		}
 		public bool Quoted               { get; private set; }
 

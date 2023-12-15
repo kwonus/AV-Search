@@ -6,19 +6,22 @@ namespace AVSearch
 	using AVXLib.Framework;
 	public class TQuery
 	{
-		private QStatement blueprint;
-
-		public TQuery(in QStatement blueprint)
+		public TQuery(in List<QFind> expressions)
 		{
+            this.Expressions = new();
             this.query_id = Guid.NewGuid();
-			this.blueprint = blueprint;
+            UInt16 exp_idx = 0;
+            foreach (var expression  in expressions)
+            {
+                this.Expressions.Add(new TExpression(in expression, ++exp_idx));
+            }
 		}
 		public byte book_cnt					{ get; private set; }
 		public UInt64 book_hits					{ get; private set; }
 		public Dictionary<byte, TBook> books	{ get; private set; }
         public UInt64 chapter_hits				{ get; private set; }
 		public UInt32 error_code				{ get; private set; }
-		public List<TExpression> expressions	{ get; private set; }
+		public List<TExpression> Expressions	{ get; private set; }
         public Guid query_id					{ get; private set; }
 		public TSettings settings				{ get; private set; }
         public UInt64 total_hits				{ get; private set; }
@@ -63,7 +66,7 @@ namespace AVSearch
             bool ok = true;
             foreach (TBook book in this.books.Values)
             {
-                foreach (var expression in this.expressions)
+                foreach (var expression in this.Expressions)
                 {
                     cnt++;
                     //ok = book.search(ref expression, ref this.settings, ref this.scope); // TODO: update hits attributes in TQuery
