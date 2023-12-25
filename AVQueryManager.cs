@@ -1,19 +1,23 @@
+using AVSearch.Model.Expressions;
+using AVSearch.Model.Results;
+using AVSearch.Model.Types;
+
 namespace AVSearch
 {
-	using Blueprint.Blue;
-	public class AVQueryManager
+    public class AVQueryManager
 	{
 		public AVQueryManager()
 		{
 			;
 		}
 
-		public Dictionary <Guid, Dictionary<Guid, TQuery>> ClientQueries;
+		public Dictionary <Guid, Dictionary<Guid, QueryResult>> ClientQueries;
 
-		public TQuery Create(in Guid client_id, in List<QFind> expressions)
+		public QueryResult Create(in Guid client_id, in List<SearchExpression> expressions)
 		{
-			var query = new TQuery(expressions);
-			return query;
+			//var query = new TQuery(expressions);
+			// query;
+			return null;
 		}
         public bool ReleaseAll(in Guid client_id)
         {

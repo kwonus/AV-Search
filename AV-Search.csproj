@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\blueprint-blue\Blueprint-Blue-Lib\Blueprint-Blue-Lib.csproj" />
     <ProjectReference Include="..\Digital-AV\omega\foundations\csharp\AVXLib\AVXLib.csproj" />
   </ItemGroup>
 
