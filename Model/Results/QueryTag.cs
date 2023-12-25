@@ -1,15 +1,16 @@
 namespace AVSearch.Model.Results
 {
+    using AVSearch.Model.Expressions;
     using AVSearch.Model.Features;
     using AVSearch.Model.Types;
 
     public class QueryTag
     {
         public uint Coordinates { get; private set; }
-        public TypeOptions Options { get; private set; }
+        public SearchMatchAny Options { get; private set; }
         public FeatureGeneric Feature { get; private set; }
 
-        public QueryTag(TypeOptions options, FeatureGeneric feature, uint coordinates = 0)
+        public QueryTag(SearchMatchAny options, FeatureGeneric feature, uint coordinates = 0)
         {
             Options = options;
             Feature = feature;

@@ -6,7 +6,17 @@
 
     public abstract class SearchMatchAny
     {
-        public abstract List<FeatureGeneric> AnyFeature { get; protected set; }
-//      public abstract UInt16 Compare(Written written);
+        public List<FeatureGeneric> AnyOf { get; protected set; }
+        public string Options             { get; protected set; }
+        public ushort OptionsIdx          { get; protected set; }
+        public ulong  Hits                { get; protected set; }
+
+        protected SearchMatchAny()
+        {
+            this.AnyOf = new();
+            this.Options = string.Empty;
+            this.OptionsIdx = 0;
+            this.Hits = 0;
+        }
     }
 }
