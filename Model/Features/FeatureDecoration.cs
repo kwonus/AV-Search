@@ -7,7 +7,7 @@ namespace AVSearch.Model.Features
         override public string Type { get => GetTypeName(this); }
         public byte Decoration { get; protected set; }
 
-        public override UInt16 Compare(ref AVXLib.Framework.Written writ, ref QueryMatch match, ref QueryTag tag)
+        public override UInt16 Compare(ref AVXLib.Memory.Written writ, ref QueryMatch match, ref QueryTag tag)
         {
             return 0;
         }

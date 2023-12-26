@@ -10,9 +10,22 @@ namespace AVSearch.Model.Features
         public HashSet<string> Phonetics { get; protected set; }
         public TypeWildcard? Wildcard { get; protected set; }
 
-        public override UInt16 Compare(ref AVXLib.Framework.Written writ, ref QueryMatch match, ref QueryTag tag)
+        public override UInt16 Compare(ref AVXLib.Memory.Written writ, ref QueryMatch match, ref QueryTag tag)
         {
-            return 0;
+            foreach (var lexeme in this.WordKeys)
+            {
+                if (lexeme == writ.WordKey)
+                {
+                    match.Add(ref tag);
+                    return FeatureGeneric.FullMatch;
+                }
+            }
+            UInt16 MaxSimilarity = 0;
+            foreach (var phone in this.Phonetics)
+            {
+                ;
+            }
+            return MaxSimilarity;
         }
         protected FeatureLexeme(string text, bool negate) : base(text, negate)
         {

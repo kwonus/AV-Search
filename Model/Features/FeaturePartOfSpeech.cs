@@ -8,7 +8,7 @@ namespace AVSearch.Model.Features
         public UInt16 PnPos12 { get; }
         public UInt32 Pos32 { get; }
 
-        public override UInt16 Compare(ref AVXLib.Framework.Written writ, ref QueryMatch match, ref QueryTag tag)
+        public override UInt16 Compare(ref AVXLib.Memory.Written writ, ref QueryMatch match, ref QueryTag tag)
         {
             return 0;
         }

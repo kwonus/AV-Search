@@ -1,4 +1,6 @@
-﻿namespace AVSearch.Model.Expressions
+﻿using AVSearch.Model.Results;
+
+namespace AVSearch.Model.Expressions
 {
     public abstract class SearchFragment
     {
@@ -10,6 +12,10 @@
         protected SearchFragment()
         {
             this.AllOf = new();
+        }
+        public UInt16 Compare(QueryResult result, ref AVXLib.Memory.Written writ)
+        {
+            return 0;
         }
     }
 

@@ -7,7 +7,7 @@
         public abstract string Type { get; }
         public string Text { get; protected set; }
         public bool Negate { get; protected set; }
-        public abstract UInt16 Compare(ref AVXLib.Framework.Written writ, ref QueryMatch match, ref QueryTag tag);
+        public abstract UInt16 Compare(ref AVXLib.Memory.Written writ, ref QueryMatch match, ref QueryTag tag);
 
         protected static string GetTypeName(object obj)
         {
@@ -24,6 +24,6 @@
                 this.Text = this.Text.Length > 1 ? this.Text.Substring(1) : string.Empty;
             }
         }
-        const UInt16 FullMatch = 1000;  // 100%
+        public const UInt16 FullMatch = 1000;  // 100%
     }
 }
