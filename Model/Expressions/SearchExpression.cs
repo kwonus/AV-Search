@@ -10,7 +10,7 @@
         public List<SearchFragment> Fragments { get; protected set; }
 
         public ISettings Settings   { get; protected set; }
-        public List<SearchFilter> Filters { get; protected set; }
+        public Dictionary<string, SearchFilter> Filters { get; protected set; }
         public bool Valid           { get; protected set; }
 
         protected SearchExpression()
