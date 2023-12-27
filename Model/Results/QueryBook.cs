@@ -2,7 +2,10 @@ namespace AVSearch.Model.Results
 {
     using AVSearch.Model.Expressions;
     using AVSearch.Model.Types;
+    using AVXLib;
+    using AVXLib.Memory;
     using Interfaces;
+    using System;
     using System.Linq;
     using System.Xml.Xsl;
     using static AVSearch.Model.Expressions.SearchFilter;
@@ -17,17 +20,70 @@ namespace AVSearch.Model.Results
         }
         public bool Search(SearchExpression expression)
         {
-            return expression.Quoted
-                ? SearchQuoted(expression)
-                : SearchUnquoted(expression);
+            bool result = (expression.Fragments.Count > 0);
+
+            if (result)
+            {
+                var bk = ObjectTable.AVXObjects.Mem.Book.Slice(this.BookNum).Span[0];
+
+                var book = bk.written;
+
+                if (expression.Scope.Count == 0)
+                {
+                    (byte chapter, byte verse) from = (1, 1);
+                    (byte chapter, byte verse) to = (bk.chapterCnt, 0xFF);
+
+                    if (expression.Quoted)
+                        SearchQuoted(expression, from, to);
+                    else
+                        SearchUnquoted(expression, from, to);
+                }
+                else
+                {
+                    foreach (byte c in this.ChapterRange)
+                    {
+                        (byte chapter, byte verse) from = (c, 1);
+                        (byte chapter, byte verse) to = (c, 0xFF);
+
+                        if (expression.Quoted)
+                            SearchQuoted(expression, from, to);
+                        else
+                            SearchUnquoted(expression, from, to);
+                    }
+                    foreach (var rangesByChapter in this.ChapterVerseRange)
+                    {
+                        (byte chapter, byte verse) from = (rangesByChapter.Key, 0);
+                        (byte chapter, byte verse) to   = (rangesByChapter.Key, 0);
+
+                        foreach (var range in rangesByChapter.Value)
+                        {
+                            from.verse = range.Verse.from;
+                            to.verse   = range.Verse.to;
+
+                            if (expression.Quoted)
+                                SearchQuoted(expression, from, to);
+                            else
+                                SearchUnquoted(expression, from, to);
+                        }
+                    }
+                }
+            }
+            return result;
+
         }
-        private bool SearchQuoted(SearchExpression expression)
+        private void SearchQuoted(SearchExpression expression, (byte chapter, byte verse) from, (byte chapter, byte verse) to)
         {
-            return false;
+            var bk = ObjectTable.AVXObjects.Mem.Book.Slice(this.BookNum).Span[0];
+            var book = bk.written;
+
+            // TODO loop through book: TODO as of 2023/12/26
         }
-        private bool SearchUnquoted(SearchExpression expression)
+        private void SearchUnquoted(SearchExpression expression, (byte chapter, byte verse) from, (byte chapter, byte verse) to)
         {
-            return false;
+            var bk = ObjectTable.AVXObjects.Mem.Book.Slice(this.BookNum).Span[0];
+            var book = bk.written;
+
+            // TODO loop through book: TODO as of 2023/12/26
         }
         public bool AddRestrictiveRange(SearchFilter.RangeFilter range)
         {
