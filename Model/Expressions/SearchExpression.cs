@@ -14,6 +14,7 @@
         public Dictionary<string, SearchFilter> Scope { get; protected set; }
         public bool Valid           { get; protected set; }
         public Dictionary<byte, QueryBook> Books { get; protected set; }
+        public QueryResult Query    { get; protected set; }
 
         protected SearchExpression()
         {
