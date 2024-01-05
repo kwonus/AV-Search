@@ -4,13 +4,23 @@ namespace AVSearch.Model.Results
  
     public class QueryMatch
     {
-        public QueryMatch()
+        public QueryMatch(AVXLib.Memory.BCVW from, AVXLib.Memory.BCVW to)
         {
             highlights = new();
+
+            this.start = from;
+            this.until = to;
+        }
+        public QueryMatch(AVXLib.Memory.BCVW from)
+        {
+            highlights = new();
+
+            this.start = from;
+            this.until = from;
         }
 
-        public uint start { get; private set; }
-        public uint until { get; private set; }
+        public AVXLib.Memory.BCVW start { get; set; }
+        public AVXLib.Memory.BCVW until { get; set; }
 
         public bool Add(ref QueryTag match)
         {

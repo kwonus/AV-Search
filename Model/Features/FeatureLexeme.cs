@@ -10,7 +10,7 @@ namespace AVSearch.Model.Features
         public HashSet<string> Phonetics { get; protected set; }
         public TypeWildcard? Wildcard { get; protected set; }
 
-        public override UInt16 Compare(ref AVXLib.Memory.Written writ, ref QueryMatch match, ref QueryTag tag)
+        public override UInt16 Compare(AVXLib.Memory.Written writ, ref QueryMatch match, ref QueryTag tag)
         {
             foreach (var lexeme in this.WordKeys)
             {

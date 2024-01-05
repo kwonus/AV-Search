@@ -7,7 +7,7 @@
         override public string Type { get => GetTypeName(this); }
         public bool hasDelta { get; protected set; }
 
-        public override UInt16 Compare(ref AVXLib.Memory.Written writ, ref QueryMatch match, ref QueryTag tag)
+        public override UInt16 Compare(AVXLib.Memory.Written writ, ref QueryMatch match, ref QueryTag tag)
         {
             return 0;
         }

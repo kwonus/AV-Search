@@ -2,40 +2,35 @@ namespace AVSearch.Model.Results
 {
     using AVSearch.Model.Expressions;
     using AVSearch.Model.Features;
-    using AVSearch.Model.Types;
 
     public class QueryTag
     {
-        public uint Coordinates { get; private set; }
+        public AVXLib.Memory.BCVW Coordinates { get; private set; }
         public SearchMatchAny Options { get; private set; }
         public FeatureGeneric Feature { get; private set; }
 
-        public QueryTag(SearchMatchAny options, FeatureGeneric feature, uint coordinates = 0)
+        public QueryTag(SearchMatchAny options, FeatureGeneric feature, AVXLib.Memory.BCVW coordinates)
         {
             Options = options;
             Feature = feature;
-            Coordinates = Coordinates;
+            Coordinates = coordinates;
         }
 
         byte get_book()
         {
-            return (byte)(Coordinates & 0xFF00 >> 24);
+            return this.Coordinates.B;
         }
         byte get_chapter()
         {
-            return (byte)(0xFF & Coordinates >> 16);
+            return this.Coordinates.C;
         }
         byte get_verse()
         {
-            return (byte)(0xFF & Coordinates >> 8);
+            return this.Coordinates.V;
         }
         byte word()
         {
-            return (byte)(0xFF & Coordinates);
-        }
-        static uint CreateCoordinate(byte b, byte c, byte v, byte w)
-        {
-            return (uint)b << 24 | (uint)c << 16 | (uint)v << 8 | w;
+            return this.Coordinates.WC;
         }
     }
 }

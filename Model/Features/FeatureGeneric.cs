@@ -7,7 +7,7 @@
         public abstract string Type { get; }
         public string Text { get; protected set; }
         public bool Negate { get; protected set; }
-        public abstract UInt16 Compare(ref AVXLib.Memory.Written writ, ref QueryMatch match, ref QueryTag tag);
+        public abstract UInt16 Compare(AVXLib.Memory.Written writ, ref QueryMatch match, ref QueryTag tag);
 
         protected static string GetTypeName(object obj)
         {

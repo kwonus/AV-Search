@@ -8,7 +8,7 @@ namespace AVSearch.Model.Features
         public HashSet<UInt16> Lemmata { get; protected set; }
         public HashSet<string> Phonetics { get; protected set; }
 
-        public override UInt16 Compare(ref AVXLib.Memory.Written writ, ref QueryMatch match, ref QueryTag tag)
+        public override UInt16 Compare(AVXLib.Memory.Written writ, ref QueryMatch match, ref QueryTag tag)
         {
             return 0;
         }
