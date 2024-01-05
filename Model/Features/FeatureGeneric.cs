@@ -7,6 +7,7 @@
         public abstract string Type { get; }
         public string Text { get; protected set; }
         public bool Negate { get; protected set; }
+        public UInt64 Hits { get; private set; }
         public abstract UInt16 Compare(AVXLib.Memory.Written writ, ref QueryMatch match, ref QueryTag tag);
 
         protected static string GetTypeName(object obj)
@@ -16,6 +17,7 @@
         }
         protected FeatureGeneric(string text, bool negate)
         {
+            this.Hits = 0;
             this.Text = text.Trim();
             this.Negate = negate;
 
@@ -23,6 +25,10 @@
             {
                 this.Text = this.Text.Length > 1 ? this.Text.Substring(1) : string.Empty;
             }
+        }
+        public void IncrementHits()
+        {
+            this.Hits++;
         }
         public const UInt16 FullMatch = 1000;  // 100%
     }

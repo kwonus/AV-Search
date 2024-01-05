@@ -11,15 +11,15 @@ namespace AVSearch.Model.Results
             Expressions = new();
             QueryId = Guid.NewGuid();
         }
-        public byte BookCnt { get; }
-        public ulong BookHits { get; }
-        public ulong ChapterHits { get; }
+        public byte BookCnt { get => 0; }
+        public ulong BookHits { get => 0; }
+        public ulong ChapterHits { get => 0; }
         public uint ErrorCode { get; protected set; }
         public List<SearchExpression> Expressions { get; protected set; }
         public Guid QueryId { get; protected set; }
         public ISettings Settings { get; protected set; }
-        public ulong TotalHits { get; }
-        public ulong VerseHits { get; }
+        public ulong TotalHits { get; private set; }
+        public ulong VerseHits { get => 0; }
 
         public bool Search(SearchExpression expression)
         {
@@ -39,6 +39,10 @@ namespace AVSearch.Model.Results
             return cnt > 0;
             */
             return false;
+        }
+        public void IncrementHits()
+        {
+            this.TotalHits++;
         }
     }
 }

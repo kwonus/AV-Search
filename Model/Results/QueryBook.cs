@@ -1,17 +1,12 @@
+using AVSearch.Model.Results;
+
 namespace AVSearch.Model.Results
 {
     using AVSearch.Model.Expressions;
     using AVSearch.Model.Features;
     using AVSearch.Model.Types;
     using AVXLib;
-    using AVXLib.Memory;
-    using Interfaces;
     using System;
-    using System.Linq;
-    using System.Text.RegularExpressions;
-    using System.Threading;
-    using System.Xml.Xsl;
-    using static AVSearch.Model.Expressions.SearchFilter;
 
     public class QueryBook : TypeBook
     {
@@ -19,6 +14,7 @@ namespace AVSearch.Model.Results
         public Dictionary<byte, List<SearchFilter.VerseRange>> ChapterVerseRange;
         public QueryBook(byte num)
         {
+            this.Chapters = new();
             this.ChapterRange = new();
         }
         public bool Search(SearchExpression expression)
@@ -134,14 +130,13 @@ namespace AVSearch.Model.Results
                         {
                             --all_of_remaining;
 
-                            QueryMatch match = new(writ[wi].BCVWc);
+                            QueryMatch match = new(writ[wi].BCVWc, ref expression, fragment);
 
                             foreach (FeatureGeneric feature in options.AnyOf)
                             {
                                 QueryTag tag = new(options, feature, writ[wi].BCVWc);
                                 if (wi > wlen)
                                     break;
-                                match.until = writ[wi].BCVWc;
 
                                 if (feature.Compare(writ[wi], ref match, ref tag) >= expression.Settings.SearchSimilarity && all_of_remaining == 0)
                                 {
@@ -217,14 +212,13 @@ namespace AVSearch.Model.Results
                         {
                             --all_of_remaining;
 
-                            QueryMatch match = new(writ[wi].BCVWc);
+                            QueryMatch match = new(writ[wi].BCVWc, ref expression, fragment);
 
                             foreach (FeatureGeneric feature in options.AnyOf)
                             {
                                 QueryTag tag = new(options, feature, writ[wi].BCVWc);
                                 if (wi > wlen)
                                     break;
-                                match.until = writ[wi].BCVWc;
 
                                 if (feature.Compare(writ[wi], ref match, ref tag) >= expression.Settings.SearchSimilarity && all_of_remaining == 0)
                                 {
@@ -329,36 +323,65 @@ namespace AVSearch.Model.Results
                 if (prematureVerse && (writ[(int)w].BCVWc.C == until.chapter) && (writ[(int)w].BCVWc.V > until.verse))
                     break;
 
+                Dictionary<string, List<QueryMatch>> matches = new();
                 int wend = (int)w + fragCnt;
+                byte c = writ[(int)w].BCVWc.C;
                 for (int wi = (int)w; wi < wend; wi++)
                 {
-                    Dictionary<string, List<QueryTag>> matches = new();
-                    foreach (SearchFragment fragment in normalizedFragments.Values)
+                    matches.Clear();
+                    foreach (string key in normalizedFragments.Keys)
                     {
+                        SearchFragment fragment = normalizedFragments[key];
+
                         foreach (SearchMatchAny options in fragment.AllOf)
                         {
-                            QueryMatch match = new(writ[wi].BCVWc);
+                            QueryMatch match = new(writ[wi].BCVWc, ref expression, fragment);
 
                             foreach (FeatureGeneric feature in options.AnyOf)
                             {
                                 QueryTag tag = new(options, feature, writ[wi].BCVWc);
 
-                                match.until = writ[wi].BCVWc;
-
                                 if (feature.Compare(writ[wi], ref match, ref tag) >= expression.Settings.SearchSimilarity)
                                 {
+                                    feature.IncrementHits();
+
                                     if (!matches.ContainsKey(fragment.Fragment))
                                     {
                                         matches[fragment.Fragment] = new();
                                     }
-                                    matches[fragment.Fragment].Add(tag);
+                                    match.Add(ref tag);
+                                    matches[fragment.Fragment].Add(match);
                                 }
                             }
                         }
                     }
                     if (matches.Count == normalizedFragments.Count)
                     {
-                        // TO DO: Add to QueryMatch list for the root chapter
+                        expression.IncrementHits();
+                        this.TotalHits++;
+
+                        QueryBook bk = expression.Books[book.bookNum];
+                        bk.IncrementHits();
+
+                        QueryChapter chapter;
+                        if (bk.Chapters.ContainsKey(c))
+                        {
+                            chapter = this.Chapters[c];
+                            chapter.IncrementHits();
+                        }
+                        else
+                        {                            
+                            chapter = new(c);
+                            this.Chapters[c] = chapter;
+                        }
+                        foreach (string frag in matches.Keys)
+                        {
+                            List<QueryMatch> collection = matches[frag];
+                            foreach (QueryMatch match in collection)
+                            {
+                                chapter.Matches.Add(match);
+                            }
+                        }
                     }
                 }
             }
@@ -397,7 +420,11 @@ namespace AVSearch.Model.Results
             }
             return false;
         }
-        private Dictionary<byte, QueryChapter> chapters;
+        public Dictionary<byte, QueryChapter> Chapters { get; private set; }
 
+        public void IncrementHits()
+        {
+            this.TotalHits++;
+        }
     }
 }

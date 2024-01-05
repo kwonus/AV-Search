@@ -15,6 +15,7 @@
         public bool Valid           { get; protected set; }
         public Dictionary<byte, QueryBook> Books { get; protected set; }
         public QueryResult Query    { get; protected set; }
+        public UInt64 Hits          { get; private set; }
 
         protected SearchExpression()
         {
@@ -66,6 +67,10 @@
                 return true;
             }
             return false;
+        }
+        public void IncrementHits()
+        {
+            this.Hits++;
         }
     }
 }

@@ -16,7 +16,6 @@ namespace AVSearch.Model.Features
             {
                 if (lexeme == writ.WordKey)
                 {
-                    match.Add(ref tag);
                     return FeatureGeneric.FullMatch;
                 }
             }

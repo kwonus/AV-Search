@@ -4,36 +4,30 @@ namespace AVSearch.Model.Results
  
     public class QueryMatch
     {
-        public QueryMatch(AVXLib.Memory.BCVW from, AVXLib.Memory.BCVW to)
+        public QueryMatch(AVXLib.Memory.BCVW start, ref SearchExpression exp, SearchFragment frag)
         {
-            highlights = new();
+            this.Expression = exp;
+            this.Fragment = frag;
 
-            this.start = from;
-            this.until = to;
+            this.Highlights = new();
+
+            this.Start = start;
+            this.Until = start;
         }
-        public QueryMatch(AVXLib.Memory.BCVW from)
-        {
-            highlights = new();
-
-            this.start = from;
-            this.until = from;
-        }
-
-        public AVXLib.Memory.BCVW start { get; set; }
-        public AVXLib.Memory.BCVW until { get; set; }
+        public AVXLib.Memory.BCVW Start { get; private set; }
+        public AVXLib.Memory.BCVW Until { get; private set; }
 
         public bool Add(ref QueryTag match)
         {
-            return false;
+            this.Highlights.Add(match);
+            if (match.Coordinates > this.Until)
+                this.Until = match.Coordinates;
+            return true;
         }
 
-        public List<QueryTag> highlights { get; private set; }
-        public SearchExpression expression { get; private set; }
-        public SearchFragment fragment { get; private set; }
+        public List<QueryTag> Highlights { get; private set; }
+        public SearchExpression Expression { get; private set; }
+        public SearchFragment Fragment { get; private set; }
 
-        public QueryResult? find()
-        {
-            return null;
-        }
     }
 }

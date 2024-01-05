@@ -7,7 +7,8 @@ namespace AVSearch.Model.Results
     {
         public QueryChapter(byte num)
         {
-            Matches = new();
+            this.Matches = new();
+            this.TotalHits = 1;
         }
         public bool AddScope(SearchFilter.ChapterRange range)
         {
