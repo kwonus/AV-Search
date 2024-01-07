@@ -6,6 +6,8 @@ namespace AVSearch.Model.Results
     using AVXLib;
     using System;
     using AVSearch.Model.Results;
+    using AVXLib.Memory;
+    using PhonemeEmbeddings;
 
     public class QueryBook : TypeBook
     {
@@ -72,14 +74,6 @@ namespace AVSearch.Model.Results
         }
         private bool SearchQuoted(SearchExpression expression, (byte chapter, byte verse) from, (byte chapter, byte verse) to)
         {
-            Dictionary<string, SearchFragment> normalizedFragments = new();
-            foreach (SearchFragment frag in expression.Fragments)
-            {
-                if (!normalizedFragments.ContainsKey(frag.Fragment))
-                {
-                    normalizedFragments[frag.Fragment] = frag;
-                }
-            }
             var book = ObjectTable.AVXObjects.Mem.Book.Slice(this.BookNum).Span[0];
             var chapters = ObjectTable.AVXObjects.Mem.Chapter.Slice(book.chapterIdx, book.chapterCnt).Span;
             var start = from;
@@ -120,16 +114,17 @@ namespace AVSearch.Model.Results
 
                 UInt16 localHits = 0;
 
+                Dictionary<BCVW, HashSet<string>> hits = new();
                 Dictionary<string, List<QueryMatch>> matches = new();
                 int wend = (int)w + fragCnt;
                 byte c = writ[(int)w].BCVWc.C;
                 for (int wi = (int)w; wi < wend; wi++)
                 {
                     matches.Clear();
-                    foreach (string key in normalizedFragments.Keys)
+                    foreach (SearchFragment fragment in expression.Fragments)
                     {
-                        SearchFragment fragment = normalizedFragments[key];
-
+                        bool success = false;
+                        UInt32 matched = 0;
                         foreach (SearchMatchAny options in fragment.AllOf)
                         {
                             QueryMatch match = new(writ[wi].BCVWc, ref expression, fragment);
@@ -140,7 +135,26 @@ namespace AVSearch.Model.Results
 
                                 if (feature.Compare(writ[wi], ref match, ref tag) >= expression.Settings.SearchSimilarity)
                                 {
-                                    feature.IncrementHits();
+                                    matched++;
+                                    // Avoid double [redundant] counting of feature hits
+                                    //
+                                    BCVW coordinates = writ[wi].BCVWc;
+                                    if (!hits.ContainsKey(coordinates))
+                                    {
+                                        hits[coordinates] = new() { feature.Text };
+                                        feature.IncrementHits();
+                                    }
+                                    else
+                                    { 
+                                        HashSet<string> features = hits[coordinates];
+
+                                        if (!features.Contains(feature.Text))
+                                        {
+                                            features.Add(feature.Text);
+                                            feature.IncrementHits();
+                                        }
+                                    }
+                                    // END double/redundant counting logic
 
                                     if (!matches.ContainsKey(fragment.Fragment))
                                     {
@@ -148,42 +162,70 @@ namespace AVSearch.Model.Results
                                     }
                                     match.Add(ref tag);
                                     matches[fragment.Fragment].Add(match);
+                                    break;
                                 }
                             }
-                        }
-                    }
-                    if (matches.Count == normalizedFragments.Count)
-                    {
-                        expression.IncrementHits();
-                        this.TotalHits++;
-
-                        QueryBook bk = expression.Books[book.bookNum];
-                        bk.IncrementHits();
-
-                        QueryChapter chapter;
-                        if (bk.Chapters.ContainsKey(c))
-                        {
-                            chapter = this.Chapters[c];
-                            chapter.IncrementHits();
-                        }
-                        else
-                        {
-                            chapter = new(c);
-                            this.Chapters[c] = chapter;
-                        }
-                        foreach (string frag in matches.Keys)
-                        {
-                            List<QueryMatch> collection = matches[frag];
-                            foreach (QueryMatch match in collection)
+                            if (matched == fragment.AllOf.Count)
                             {
-                                chapter.Matches.Add(match);
+                                success = true;
+                                break;
+                            }
+                            else if (!fragment.Anchored)
+                            {
+                                success = false;
+
+                                if (wi+1 < wend)
+                                {
+                                    wi++;
+                                    continue;
+                                }
+                                else break;
+                            }
+                            else
+                            {
+                                success = false;
+                                break;
                             }
                         }
-                    }
+                        if (!success)
+                        {
+                            break;
+                        }
+                        if (matches.Count == expression.Fragments.Count)
+                        {
+                            hit = true;
+                            expression.IncrementHits();
+                            this.TotalHits++;
 
+                            QueryBook bk = expression.Books[book.bookNum];
+                            bk.IncrementHits();
+
+                            QueryChapter chapter;
+                            if (bk.Chapters.ContainsKey(c))
+                            {
+                                chapter = this.Chapters[c];
+                                chapter.IncrementHits();
+                            }
+                            else
+                            {
+                                chapter = new(c);
+                                this.Chapters[c] = chapter;
+                            }
+                            foreach (string frag in matches.Keys)
+                            {
+                                List<QueryMatch> collection = matches[frag];
+                                foreach (QueryMatch match in collection)
+                                {
+                                    chapter.Matches.Add(match);
+                                }
+                            }
+                            break;
+                        }
+                    }
                 }
                 if (localHits == 0)
                 {
+                    hits.Clear();
                     w += (uint)wend;
                 }
                 else
@@ -275,6 +317,8 @@ namespace AVSearch.Model.Results
                     }
                     if (matches.Count == normalizedFragments.Count)
                     {
+                        hit = true;
+
                         expression.IncrementHits();
                         this.TotalHits++;
 
