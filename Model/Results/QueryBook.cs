@@ -252,14 +252,14 @@ namespace AVSearch.Model.Results
             var until = to;
             if (start.chapter < 1 || start.chapter > book.chapterCnt)
                 return false;
-            if (start.verse < 1 || start.verse > chapters[book.chapterIdx + start.chapter - 1].verseCnt)
+            if (start.verse < 1 || start.verse > chapters[start.chapter - 1].verseCnt)
                 return false;
             if (until.verse < 1)
                 return false;
-            if (until.verse > chapters[book.chapterIdx + start.chapter - 1].verseCnt)
-                until.verse = chapters[book.chapterIdx + start.chapter - 1].verseCnt; // we allow 0xFF to represent the last verse of the chapter here
+            if (until.verse > chapters[until.chapter - 1].verseCnt)
+                until.verse = chapters[until.chapter - 1].verseCnt; // we allow 0xFF to represent the last verse of the chapter here
 
-            bool prematureVerse = (until.verse < chapters[book.chapterIdx + start.chapter - 1].verseCnt);
+            bool prematureVerse = (until.verse < chapters[until.chapter - 1].verseCnt);
             bool prematureChapter = (until.chapter < book.chapterCnt);
 
             var fragCnt = expression.Fragments.Count;
