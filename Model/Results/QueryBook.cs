@@ -15,6 +15,7 @@ namespace AVSearch.Model.Results
         public Dictionary<byte, List<SearchFilter.VerseRange>> ChapterVerseRange;
         public QueryBook(byte num)
         {
+            this.BookNum = num;
             this.Chapters = new();
             this.ChapterRange = new();
             this.ChapterVerseRange = new();

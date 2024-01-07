@@ -28,7 +28,6 @@
             this.Scope = new();
             this.Settings = settings;
             this.Query = query;
-
         }
 
         public bool AddScope(byte book)
