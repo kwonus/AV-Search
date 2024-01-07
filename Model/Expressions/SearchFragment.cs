@@ -9,9 +9,9 @@ namespace AVSearch.Model.Expressions
         public string Fragment { get; protected set; }
         public ushort FragmentIdx { get; protected set; }
         public List<SearchMatchAny> AllOf { get; protected set; }
-        protected SearchFragment()
+        protected SearchFragment(string text)
         {
-            this.Fragment = string.Empty;
+            this.Fragment = text;
             this.AllOf = new();
         }
         public UInt16 Compare(QueryResult result, ref AVXLib.Memory.Written writ)

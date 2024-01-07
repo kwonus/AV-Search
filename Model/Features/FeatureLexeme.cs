@@ -14,7 +14,7 @@ namespace AVSearch.Model.Features
         {
             foreach (var lexeme in this.WordKeys)
             {
-                if (lexeme == writ.WordKey)
+                if (lexeme == (writ.WordKey & 0X3FFF))
                 {
                     return FeatureGeneric.FullMatch;
                 }

@@ -130,7 +130,7 @@ namespace AVSearch.Model.Results
                         {
                             QueryMatch match = new(writ[wi].BCVWc, ref expression, fragment);
 
-                            foreach (FeatureGeneric feature in options.AnyOf)
+                            foreach (FeatureGeneric feature in options.AnyFeature)
                             {
                                 QueryTag tag = new(options, feature, writ[wi].BCVWc);
 
@@ -277,6 +277,7 @@ namespace AVSearch.Model.Results
             for (w = 0; writ[(int)w].BCVWc.C < start.chapter || writ[(int)w].BCVWc.V < start.verse; w++)
                 ;
 
+            Dictionary<string, List<QueryMatch>> matches = new();
             for (/**/; w + fragCnt - 1 < book.writCnt; w++)
             {
                 if (prematureChapter && (writ[(int)w].BCVWc.C > until.chapter))
@@ -284,12 +285,11 @@ namespace AVSearch.Model.Results
                 if (prematureVerse && (writ[(int)w].BCVWc.C == until.chapter) && (writ[(int)w].BCVWc.V > until.verse))
                     break;
 
-                Dictionary<string, List<QueryMatch>> matches = new();
                 int wend = (int)w + fragCnt;
                 byte c = writ[(int)w].BCVWc.C;
+                matches.Clear();
                 for (int wi = (int)w; wi < wend; wi++)
                 {
-                    matches.Clear();
                     foreach (string key in normalizedFragments.Keys)
                     {
                         SearchFragment fragment = normalizedFragments[key];
@@ -298,7 +298,7 @@ namespace AVSearch.Model.Results
                         {
                             QueryMatch match = new(writ[wi].BCVWc, ref expression, fragment);
 
-                            foreach (FeatureGeneric feature in options.AnyOf)
+                            foreach (FeatureGeneric feature in options.AnyFeature)
                             {
                                 QueryTag tag = new(options, feature, writ[wi].BCVWc);
 
@@ -345,6 +345,7 @@ namespace AVSearch.Model.Results
                                 chapter.Matches.Add(match);
                             }
                         }
+                        matches.Clear();
                     }
                 }
             }
