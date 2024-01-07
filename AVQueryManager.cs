@@ -8,12 +8,12 @@ namespace AVSearch
 	{
 		public AVQueryManager()
 		{
-			;
+			this.ClientQueries = new();
 		}
 
 		public Dictionary <Guid, Dictionary<Guid, QueryResult>> ClientQueries;
 
-		public QueryResult Create(in Guid client_id, in List<SearchExpression> expressions)
+		public QueryResult? Create(in Guid client_id, in List<SearchExpression> expressions)
 		{
 			//var query = new TQuery(expressions);
 			// query;

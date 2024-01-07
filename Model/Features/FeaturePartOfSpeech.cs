@@ -5,8 +5,8 @@ namespace AVSearch.Model.Features
     public abstract class FeaturePartOfSpeech : FeatureGeneric
     {
         override public string Type { get => GetTypeName(this); }
-        public UInt16 PnPos12 { get; }
-        public UInt32 Pos32 { get; }
+        public UInt16 PnPos12 { get; protected set; }
+        public UInt32 Pos32 { get; protected set; }
 
         public override UInt16 Compare(AVXLib.Memory.Written writ, ref QueryMatch match, ref QueryTag tag)
         {

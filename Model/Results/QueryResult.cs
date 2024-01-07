@@ -8,8 +8,8 @@ namespace AVSearch.Model.Results
     {
         public QueryResult()
         {
-            Expressions = new();
-            QueryId = Guid.NewGuid();
+            this.Expressions = new();
+            this.QueryId = Guid.NewGuid();
         }
         public byte BookCnt { get => 0; }
         public ulong BookHits { get => 0; }
@@ -17,7 +17,6 @@ namespace AVSearch.Model.Results
         public uint ErrorCode { get; protected set; }
         public List<SearchExpression> Expressions { get; protected set; }
         public Guid QueryId { get; protected set; }
-        public ISettings Settings { get; protected set; }
         public ulong TotalHits { get; private set; }
         public ulong VerseHits { get => 0; }
 

@@ -11,6 +11,7 @@ namespace AVSearch.Model.Expressions
         public List<SearchMatchAny> AllOf { get; protected set; }
         protected SearchFragment()
         {
+            this.Fragment = string.Empty;
             this.AllOf = new();
         }
         public UInt16 Compare(QueryResult result, ref AVXLib.Memory.Written writ)

@@ -17,7 +17,7 @@
         public QueryResult Query    { get; protected set; }
         public UInt64 Hits          { get; private set; }
 
-        protected SearchExpression()
+        protected SearchExpression(ISettings settings, QueryResult query)
         {
             this.Quoted = false;
             this.Expression = string.Empty;
@@ -26,6 +26,9 @@
             this.Valid = false;
             this.Books = new();
             this.Scope = new();
+            this.Settings = settings;
+            this.Query = query;
+
         }
 
         public bool AddScope(byte book)

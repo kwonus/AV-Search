@@ -1,5 +1,3 @@
-using AVSearch.Model.Results;
-
 namespace AVSearch.Model.Results
 {
     using AVSearch.Model.Expressions;
@@ -7,6 +5,7 @@ namespace AVSearch.Model.Results
     using AVSearch.Model.Types;
     using AVXLib;
     using System;
+    using AVSearch.Model.Results;
 
     public class QueryBook : TypeBook
     {
@@ -16,6 +15,7 @@ namespace AVSearch.Model.Results
         {
             this.Chapters = new();
             this.ChapterRange = new();
+            this.ChapterVerseRange = new();
         }
         public bool Search(SearchExpression expression)
         {
@@ -72,6 +72,14 @@ namespace AVSearch.Model.Results
         }
         private bool SearchQuoted(SearchExpression expression, (byte chapter, byte verse) from, (byte chapter, byte verse) to)
         {
+            Dictionary<string, SearchFragment> normalizedFragments = new();
+            foreach (SearchFragment frag in expression.Fragments)
+            {
+                if (!normalizedFragments.ContainsKey(frag.Fragment))
+                {
+                    normalizedFragments[frag.Fragment] = frag;
+                }
+            }
             var book = ObjectTable.AVXObjects.Mem.Book.Slice(this.BookNum).Span[0];
             var chapters = ObjectTable.AVXObjects.Mem.Chapter.Slice(book.chapterIdx, book.chapterCnt).Span;
             var start = from;
@@ -103,174 +111,84 @@ namespace AVSearch.Model.Results
             for (w = 0; writ[(int)w].BCVWc.C < start.chapter || writ[(int)w].BCVWc.V < start.verse; w++)
                 ;
 
-            if (expression.Settings.SearchSpan > 0)
+            for (/**/; w + fragCnt - 1 < book.writCnt; /* increment is at end of loop */)
             {
-                UInt32 len = expression.Settings.SearchSpan;
-                UInt32 wlen = 0;
-                for (/**/; w < book.writCnt; w++)
+                if (prematureChapter && (writ[(int)w].BCVWc.C > until.chapter))
+                    break;
+                if (prematureVerse && (writ[(int)w].BCVWc.C == until.chapter) && (writ[(int)w].BCVWc.V > until.verse))
+                    break;
+
+                UInt16 localHits = 0;
+
+                Dictionary<string, List<QueryMatch>> matches = new();
+                int wend = (int)w + fragCnt;
+                byte c = writ[(int)w].BCVWc.C;
+                for (int wi = (int)w; wi < wend; wi++)
                 {
-                    int wi = (int)w;
-
-                    if (prematureChapter && (writ[wi].BCVWc.C > until.chapter))
-                        break;
-                    if (prematureVerse && (writ[wi].BCVWc.C == until.chapter) && (writ[wi].BCVWc.V > until.verse))
-                        break;
-
-                    if (wlen == 0)
+                    matches.Clear();
+                    foreach (string key in normalizedFragments.Keys)
                     {
-                        wlen = w + len;
-                        if (wlen > book.writCnt)
-                            wlen = book.writCnt;
-                    }
-                    foreach (SearchFragment fragment in expression.Fragments)
-                    {
-                        var all_of_remaining = fragment.AllOf.Count;
+                        SearchFragment fragment = normalizedFragments[key];
 
                         foreach (SearchMatchAny options in fragment.AllOf)
                         {
-                            --all_of_remaining;
-
                             QueryMatch match = new(writ[wi].BCVWc, ref expression, fragment);
 
                             foreach (FeatureGeneric feature in options.AnyOf)
                             {
                                 QueryTag tag = new(options, feature, writ[wi].BCVWc);
-                                if (wi > wlen)
-                                    break;
 
-                                if (feature.Compare(writ[wi], ref match, ref tag) >= expression.Settings.SearchSimilarity && all_of_remaining == 0)
+                                if (feature.Compare(writ[wi], ref match, ref tag) >= expression.Settings.SearchSimilarity)
                                 {
-                                    /*
-                                    for (auto t : match->highlights)
+                                    feature.IncrementHits();
+
+                                    if (!matches.ContainsKey(fragment.Fragment))
                                     {
-                                        byte c = 0;
-                                        if (match->start == 0)
-                                        {
-                                            match->start = t->coordinates;
-                                            c = t->get_chapter();
-                                        }
-                                        else if (match->start > t->coordinates)
-                                            match->start = t->coordinates;
-
-                                        else if (match->until < t->coordinates)
-                                            match->until = t->coordinates;
-
-                                        this->total_hits++;
-
-                                        TChapter* chapter = this->chapters[c];
-                                        if (chapter == nullptr)
-                                        {
-                                            chapter = new TChapter(c);
-                                            this->chapters[c] = chapter;
-                                        }
-                                        chapter->total_hits++;
-                                        this->total_hits++;
+                                        matches[fragment.Fragment] = new();
                                     }
-                                    */
+                                    match.Add(ref tag);
+                                    matches[fragment.Fragment].Add(match);
                                 }
-                                else
-                                {
-                                    if (fragment.Anchored)
-                                    {
-                                        //delete match.Dispose;
-                                        //delete tag;
-                                        goto NOT_FOUND_1;
-                                    }
-                                    if (wi == wlen - 1) // end-of-verse with verse-span granularity
-                                    {
-                                        //delete match;
-                                        //delete tag;
-                                        goto NOT_FOUND_1;
-                                    }
-                                }
-                                wi++;
                             }
                         }
                     }
-                NOT_FOUND_1:
-                    continue;
+                    if (matches.Count == normalizedFragments.Count)
+                    {
+                        expression.IncrementHits();
+                        this.TotalHits++;
+
+                        QueryBook bk = expression.Books[book.bookNum];
+                        bk.IncrementHits();
+
+                        QueryChapter chapter;
+                        if (bk.Chapters.ContainsKey(c))
+                        {
+                            chapter = this.Chapters[c];
+                            chapter.IncrementHits();
+                        }
+                        else
+                        {
+                            chapter = new(c);
+                            this.Chapters[c] = chapter;
+                        }
+                        foreach (string frag in matches.Keys)
+                        {
+                            List<QueryMatch> collection = matches[frag];
+                            foreach (QueryMatch match in collection)
+                            {
+                                chapter.Matches.Add(match);
+                            }
+                        }
+                    }
+
                 }
-            }
-            else // almost the same as the previous if condition, but dynamic verse-span instead of fixed-length-span
-            {
-                UInt32 len = expression.Settings.SearchSpan;
-                UInt32 wlen = 0;
-                for (/**/; w < book.writCnt; w += writ[(int)w].BCVWc.WC)
+                if (localHits == 0)
                 {
-                    int wi = (int)w;
-
-                    if (prematureChapter && (writ[wi].BCVWc.C > until.chapter))
-                        break;
-                    if (prematureVerse && (writ[wi].BCVWc.C == until.chapter) && (writ[wi].BCVWc.V > until.verse))
-                        break;
-
-                    foreach (SearchFragment fragment in expression.Fragments)
-                    {
-                        var all_of_remaining = fragment.AllOf.Count;
-
-                        foreach (SearchMatchAny options in fragment.AllOf)
-                        {
-                            --all_of_remaining;
-
-                            QueryMatch match = new(writ[wi].BCVWc, ref expression, fragment);
-
-                            foreach (FeatureGeneric feature in options.AnyOf)
-                            {
-                                QueryTag tag = new(options, feature, writ[wi].BCVWc);
-                                if (wi > wlen)
-                                    break;
-
-                                if (feature.Compare(writ[wi], ref match, ref tag) >= expression.Settings.SearchSimilarity && all_of_remaining == 0)
-                                {
-                                    /*
-                                    for (auto t : match->highlights)
-                                    {
-                                        byte c = 0;
-                                        if (match->start == 0)
-                                        {
-                                            match->start = t->coordinates;
-                                            c = t->get_chapter();
-                                        }
-                                        else if (match->start > t->coordinates)
-                                            match->start = t->coordinates;
-
-                                        else if (match->until < t->coordinates)
-                                            match->until = t->coordinates;
-
-                                        this->total_hits++;
-
-                                        TChapter* chapter = this->chapters[c];
-                                        if (chapter == nullptr)
-                                        {
-                                            chapter = new TChapter(c);
-                                            this->chapters[c] = chapter;
-                                        }
-                                        chapter->total_hits++;
-                                        this->total_hits++;
-                                    }
-                                    */
-                                }
-                                else
-                                {
-                                    if (fragment.Anchored)
-                                    {
-                                        //delete match.Dispose;
-                                        //delete tag;
-                                        goto NOT_FOUND_2;
-                                    }
-                                    if (wi == wlen - 1) // end-of-verse with verse-span granularity
-                                    {
-                                        //delete match;
-                                        //delete tag;
-                                        goto NOT_FOUND_2;
-                                    }
-                                }
-                                wi++;
-                            }
-                        }
-                    }
-                NOT_FOUND_2:
-                    continue;
+                    w += (uint)wend;
+                }
+                else
+                {
+                    w++;
                 }
             }
             return hit;

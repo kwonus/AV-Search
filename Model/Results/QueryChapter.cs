@@ -5,9 +5,8 @@ namespace AVSearch.Model.Results
 
     public class QueryChapter : TypeChapter
     {
-        public QueryChapter(byte num)
+        public QueryChapter(byte num) : base()
         {
-            this.Matches = new();
             this.TotalHits = 1;
         }
         public bool AddScope(SearchFilter.ChapterRange range)

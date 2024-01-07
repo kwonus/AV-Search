@@ -11,6 +11,11 @@
 
         public List<QueryMatch> Matches { get; protected set; }
 
+        protected TypeChapter()
+        {
+            this.Matches = new();
+        }
+
         public void IncrementHits()
         {
             this.TotalHits++;
