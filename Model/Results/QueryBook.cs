@@ -75,20 +75,28 @@ namespace AVSearch.Model.Results
         }
         private bool SearchQuoted(SearchExpression expression, (byte chapter, byte verse) from, (byte chapter, byte verse) to)
         {
+            Dictionary<string, SearchFragment> normalizedFragments = new();
+            foreach (SearchFragment frag in expression.Fragments)
+            {
+                if (!normalizedFragments.ContainsKey(frag.Fragment))
+                {
+                    normalizedFragments[frag.Fragment] = frag;
+                }
+            }
             var book = ObjectTable.AVXObjects.Mem.Book.Slice(this.BookNum).Span[0];
             var chapters = ObjectTable.AVXObjects.Mem.Chapter.Slice(book.chapterIdx, book.chapterCnt).Span;
             var start = from;
             var until = to;
             if (start.chapter < 1 || start.chapter > book.chapterCnt)
                 return false;
-            if (start.verse < 1 || start.verse > chapters[book.chapterIdx + start.chapter - 1].verseCnt)
+            if (start.verse < 1 || start.verse > chapters[start.chapter - 1].verseCnt)
                 return false;
             if (until.verse < 1)
                 return false;
-            if (until.verse > chapters[book.chapterIdx + start.chapter - 1].verseCnt)
-                until.verse = chapters[book.chapterIdx + start.chapter - 1].verseCnt; // we allow 0xFF to represent the last verse of the chapter here
+            if (until.verse > chapters[until.chapter - 1].verseCnt)
+                until.verse = chapters[until.chapter - 1].verseCnt; // we allow 0xFF to represent the last verse of the chapter here
 
-            bool prematureVerse = (until.verse < chapters[book.chapterIdx + start.chapter - 1].verseCnt);
+            bool prematureVerse = (until.verse < chapters[until.chapter - 1].verseCnt);
             bool prematureChapter = (until.chapter < book.chapterCnt);
 
             var fragCnt = expression.Fragments.Count;
@@ -106,24 +114,24 @@ namespace AVSearch.Model.Results
             for (w = 0; writ[(int)w].BCVWc.C < start.chapter || writ[(int)w].BCVWc.V < start.verse; w++)
                 ;
 
-            for (/**/; w + fragCnt - 1 < book.writCnt; /* increment is at end of loop */)
+            for (/**/; w + fragCnt - 1 < book.writCnt; w++)
             {
                 if (prematureChapter && (writ[(int)w].BCVWc.C > until.chapter))
                     break;
                 if (prematureVerse && (writ[(int)w].BCVWc.C == until.chapter) && (writ[(int)w].BCVWc.V > until.verse))
                     break;
 
-                UInt16 localHits = 0;
-
                 Dictionary<BCVW, HashSet<string>> hits = new();
                 Dictionary<string, List<QueryMatch>> matches = new();
                 int wend = (int)w + fragCnt;
+
                 byte c = writ[(int)w].BCVWc.C;
                 for (int wi = (int)w; wi < wend; wi++)
                 {
                     matches.Clear();
                     foreach (SearchFragment fragment in expression.Fragments)
                     {
+                        bool found = false;
                         bool success = false;
                         UInt32 matched = 0;
                         foreach (SearchMatchAny options in fragment.AllOf)
@@ -134,7 +142,9 @@ namespace AVSearch.Model.Results
                             {
                                 QueryTag tag = new(options, feature, writ[wi].BCVWc);
 
-                                if (feature.Compare(writ[wi], ref match, ref tag) >= expression.Settings.SearchSimilarity)
+                                found = (feature.Compare(writ[wi], ref match, ref tag) >= expression.Settings.SearchSimilarity);
+
+                                if (found)
                                 {
                                     matched++;
                                     // Avoid double [redundant] counting of feature hits
@@ -165,32 +175,18 @@ namespace AVSearch.Model.Results
                                     matches[fragment.Fragment].Add(match);
                                     break;
                                 }
-                            }
-                            if (matched == fragment.AllOf.Count)
-                            {
-                                success = true;
-                                break;
-                            }
-                            else if (!fragment.Anchored)
-                            {
-                                success = false;
-
-                                if (wi+1 < wend)
+                                else if (fragment.Anchored)
                                 {
-                                    wi++;
-                                    continue;
+                                    break;
                                 }
-                                else break;
                             }
-                            else
-                            {
-                                success = false;
+                            success = (matched == fragment.AllOf.Count);
+                            if (success)
                                 break;
-                            }
                         }
                         if (!success)
                         {
-                            break;
+                            continue;
                         }
                         if (matches.Count == expression.Fragments.Count)
                         {
@@ -223,15 +219,6 @@ namespace AVSearch.Model.Results
                             break;
                         }
                     }
-                }
-                if (localHits == 0)
-                {
-                    hits.Clear();
-                    w += (uint)wend;
-                }
-                else
-                {
-                    w++;
                 }
             }
             return hit;
