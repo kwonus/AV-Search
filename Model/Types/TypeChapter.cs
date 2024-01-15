@@ -1,5 +1,7 @@
 ﻿namespace AVSearch.Model.Types
 {
+    using AVSearch.Interfaces;
+    using AVSearch.Model.Expressions;
     using AVSearch.Model.Results;
     using System;
 
@@ -20,5 +22,7 @@
         {
             this.TotalHits++;
         }
+
+        public abstract string Render(ISettings settings, SearchFilter.RangeFilter range);
     }
 }

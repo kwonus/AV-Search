@@ -42,11 +42,11 @@ namespace AVSearch.Model.Types
                 string kjvNorm = hyphenated ? lex.Search.ToString() : kjv;
                 string avxNorm = hyphenated ? lex.Search.ToString() : avx;  // transliterated names do not differ between kjv and avx
 
-                kjvMatch.normalized = settings.UseLexiconAV
+                kjvMatch.normalized = settings.SearchAsAV
                     && ((this.Beginning == null) || kjvNorm.StartsWith(this.Beginning, StringComparison.InvariantCultureIgnoreCase))
                     && ((this.Ending == null) || kjvNorm.EndsWith(this.Ending, StringComparison.InvariantCultureIgnoreCase));
 
-                avxMatch.normalized = settings.UseLexiconAVX
+                avxMatch.normalized = settings.SearchAsAVX
                     && ((this.Beginning == null) || avxNorm.StartsWith(this.Beginning, StringComparison.InvariantCultureIgnoreCase))
                     && ((this.Ending == null) || avxNorm.EndsWith(this.Ending, StringComparison.InvariantCultureIgnoreCase));
 
@@ -54,11 +54,11 @@ namespace AVSearch.Model.Types
 
                 if (hyphenated)
                 {
-                    kjvMatch.hyphenated = settings.UseLexiconAV
+                    kjvMatch.hyphenated = settings.SearchAsAV
                         && ((this.Beginning == null) || kjv.StartsWith(this.Beginning, StringComparison.InvariantCultureIgnoreCase))
                         && ((this.Ending == null) || kjv.EndsWith(this.Ending, StringComparison.InvariantCultureIgnoreCase));
 
-                    avxMatch.hyphenated = settings.UseLexiconAVX
+                    avxMatch.hyphenated = settings.SearchAsAVX
                         && ((this.Beginning == null) || avx.StartsWith(this.Beginning, StringComparison.InvariantCultureIgnoreCase))
                         && ((this.Ending == null) || avx.EndsWith(this.Ending, StringComparison.InvariantCultureIgnoreCase));
 
