@@ -27,8 +27,13 @@ namespace AVSearch.Model.Types
             this.Text = text;
             this.TermType = WildcardType.EnglishTerm;
         }
-
         public HashSet<UInt16> GetLexemes(ISettings settings)
+        {
+            return this.TermType == WildcardType.EnglishTerm
+                ? this.GetLexemesFromEnglishWildcard(settings)
+                : this.GetLexemesFromPhoneticWildcard(settings);
+        }
+        public HashSet<UInt16> GetLexemesFromEnglishWildcard(ISettings settings)
         {
             var lexicon = ObjectTable.AVXObjects.Mem.Lexicon.Slice(1).ToArray();
             var lexemes = new HashSet<UInt16>();
@@ -93,6 +98,14 @@ namespace AVSearch.Model.Types
                         lexemes.Add(key);
                 }
             }
+            return lexemes;
+        }
+
+        public HashSet<UInt16> GetLexemesFromPhoneticWildcard(ISettings settings)
+        {
+            var lexicon = ObjectTable.AVXObjects.Mem.Lexicon.Slice(1).ToArray();
+            var lexemes = new HashSet<UInt16>();
+
             return lexemes;
         }
     }
