@@ -1,8 +1,14 @@
 using AVSearch.Interfaces;
 using AVXLib;
+using AVXLib.Memory;
 
 namespace AVSearch.Model.Types
 {
+    public enum WildcardType
+    {
+        EnglishTerm = 0,
+        NuphoneTerm = 1,
+    }
     public abstract class TypeWildcard
     {
         public List<string> Contains { get; protected set; }
@@ -12,12 +18,14 @@ namespace AVSearch.Model.Types
         public string? BeginningHyphenated { get; protected set; }
         public string? EndingHyphenated { get; protected set; }
         public string Text { get; protected set; }
+        public WildcardType TermType { get; protected set; }
 
         protected TypeWildcard(string text)
         {
             this.Contains = new();
             this.ContainsHyphenated = new();
             this.Text = text;
+            this.TermType = WildcardType.EnglishTerm;
         }
 
         public HashSet<UInt16> GetLexemes(ISettings settings)
@@ -31,16 +39,16 @@ namespace AVSearch.Model.Types
                 bool match = false;
                 ++key;
 
-                string kjv = lex.Display.ToString();
-                string avx = lex.Modern.ToString();
+                string kjv = LEXICON.ToDisplayString(lex);
+                string avx = LEXICON.ToModernString(lex);
 
                 (bool normalized, bool hyphenated) kjvMatch = (false, false);
                 (bool normalized, bool hyphenated) avxMatch = (false, false);
 
-                bool hyphenated = kjv.Contains('-');
+                bool hyphenated = LEXICON.IsHyphenated(lex);
 
-                string kjvNorm = hyphenated ? lex.Search.ToString() : kjv;
-                string avxNorm = hyphenated ? lex.Search.ToString() : avx;  // transliterated names do not differ between kjv and avx
+                string kjvNorm = hyphenated ? LEXICON.ToSearchString(lex) : kjv;
+                string avxNorm = hyphenated ? kjvNorm : avx;  // transliterated names (i.e. entries with hyphens) do not differ between kjv and avx
 
                 kjvMatch.normalized = settings.SearchAsAV
                     && ((this.Beginning == null) || kjvNorm.StartsWith(this.Beginning, StringComparison.InvariantCultureIgnoreCase))

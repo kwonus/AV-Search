@@ -12,13 +12,13 @@ namespace AVSearch.Model.Features
         {
             if (this.Pos32 != 0 && this.Pos32 == writ.POS32)
             {
-                return FeatureGeneric.FullMatch;
+                return this.NegatableFullMatch;
             }
             if (this.PnPos12 != 0 && this.PnPos12 == (writ.POS32 & this.PnPos12))
             {
-                return FeatureGeneric.FullMatch;
+                return this.NegatableFullMatch;
             }
-            return 0;
+            return this.NegatableZeroMatch;
         }
         protected FeaturePartOfSpeech(string text, bool negate) : base(text, negate)
         {

@@ -10,7 +10,19 @@ namespace AVSearch.Model.Features
 
         public override UInt16 Compare(AVXLib.Memory.Written writ, ref QueryMatch match, ref QueryTag tag)
         {
-            return 0;
+            foreach (var lexeme in this.Lemmata)
+            {
+                if (lexeme == (writ.Lemma & 0X3FFF))
+                {
+                    return this.NegatableFullMatch;
+                }
+            }
+            UInt16 maxSimilarity = 0;
+            foreach (var phone in this.Phonetics)
+            {
+                ;
+            }
+            return this.NegatableMatchScore(maxSimilarity);
         }
         protected FeatureLemma(string text, bool negate) : base(text, negate)
         {

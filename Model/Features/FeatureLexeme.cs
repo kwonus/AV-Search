@@ -16,15 +16,15 @@ namespace AVSearch.Model.Features
             {
                 if (lexeme == (writ.WordKey & 0X3FFF))
                 {
-                    return FeatureGeneric.FullMatch;
+                    return this.NegatableFullMatch;
                 }
             }
-            UInt16 MaxSimilarity = 0;
+            UInt16 maxSimilarity = 0;
             foreach (var phone in this.Phonetics)
             {
                 ;
             }
-            return MaxSimilarity;
+            return this.NegatableMatchScore(maxSimilarity);
         }
         protected FeatureLexeme(string text, bool negate) : base(text, negate)
         {

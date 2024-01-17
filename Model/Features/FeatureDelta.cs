@@ -1,19 +1,24 @@
 ﻿namespace AVSearch.Model.Features
 {
     using AVSearch.Model.Results;
+    using AVXLib;
+    using AVXLib.Memory;
 
     public abstract class FeatureDelta : FeatureGeneric
     {
         override public string Type { get => GetTypeName(this); }
-        public bool hasDelta { get; protected set; }
 
         public override UInt16 Compare(AVXLib.Memory.Written writ, ref QueryMatch match, ref QueryTag tag)
         {
-            return 0;
+            var entry = ObjectTable.AVXObjects.lexicon.GetRecord(writ.WordKey);
+            bool delta = entry.valid && !LEXICON.IsModernSameAsDisplay(entry.entry);
+
+            bool result = this.Negate ? !delta : delta;            
+            return result ? FeatureGeneric.FullMatch : FeatureGeneric.ZeroMatch;
         }
         protected FeatureDelta(string text, bool negate) : base(text, negate)
         {
-            this.hasDelta = false;
+            ;
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿namespace AVSearch.Model.Features
 {
     using AVSearch.Model.Results;
+    using static System.Formats.Asn1.AsnWriter;
 
     public abstract class FeatureGeneric
     {
@@ -30,6 +31,37 @@
         {
             this.Hits++;
         }
+        public UInt16 NegatableScore(UInt16 score)
+        {
+            if (score > FeatureGeneric.FullMatch)
+                return 0;
+
+            return !this.Negate ? score : (UInt16)(FullMatch - score);
+
+        }
+        public UInt16 NegatableFullMatch
+        {
+            get
+            {
+                return !this.Negate ? FeatureGeneric.FullMatch : FeatureGeneric.ZeroMatch;
+            }
+        }
+        public UInt16 NegatableZeroMatch
+        {
+            get
+            {
+                return !this.Negate ? FeatureGeneric.ZeroMatch : FeatureGeneric.FullMatch;
+            }
+        }
+        public UInt16 NegatableMatchScore(UInt16 score)
+        {
+            if (score > FeatureGeneric.FullMatch)
+                return 0;
+
+            return !this.Negate ? score : (UInt16)(FullMatch - score);
+
+        }
         public const UInt16 FullMatch = 1000;  // 100%
+        public const UInt16 ZeroMatch =    0;  //   0%
     }
 }

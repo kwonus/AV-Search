@@ -9,7 +9,11 @@
 
         public override UInt16 Compare(AVXLib.Memory.Written writ, ref QueryMatch match, ref QueryTag tag)
         {
-            return 0;
+            if ((byte)(writ.Transition & this.Transition) == this.Transition)
+            {
+                return this.NegatableFullMatch;
+            }
+            return this.NegatableZeroMatch;
         }
         protected FeatureTransition(string text, bool negate) : base(text, negate)
         {
