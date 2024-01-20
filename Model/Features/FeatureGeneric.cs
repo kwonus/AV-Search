@@ -1,5 +1,6 @@
 ﻿namespace AVSearch.Model.Features
 {
+    using AVSearch.Interfaces;
     using AVSearch.Model.Results;
     using static System.Formats.Asn1.AsnWriter;
 
@@ -9,6 +10,7 @@
         public string Text { get; protected set; }
         public bool Negate { get; protected set; }
         public UInt64 Hits { get; private set; }
+        protected ISettings Settings { get; set; }
         public abstract UInt16 Compare(AVXLib.Memory.Written writ, ref QueryMatch match, ref QueryTag tag);
 
         protected static string GetTypeName(object obj)
@@ -16,11 +18,12 @@
             string name = obj.GetType().Name;
             return name.Length >= 8 && name.StartsWith("Feature") ? name.Substring(7) : name;
         }
-        protected FeatureGeneric(string text, bool negate)
+        protected FeatureGeneric(string text, bool negate, ISettings settings)
         {
             this.Hits = 0;
             this.Text = text.Trim();
             this.Negate = negate;
+            this.Settings = settings;
 
             if (this.Negate && this.Text.StartsWith('-'))
             {

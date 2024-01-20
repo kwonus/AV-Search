@@ -1,5 +1,6 @@
 ﻿namespace AVSearch.Model.Features
 {
+    using AVSearch.Interfaces;
     using AVSearch.Model.Results;
 
     public abstract class FeatureStrongs : FeatureGeneric
@@ -27,7 +28,7 @@
             }
             return this.NegatableZeroMatch;
         }
-        protected FeatureStrongs(string text, bool negate) : base(text, negate)
+        protected FeatureStrongs(string text, bool negate, ISettings settings) : base(text, negate, settings)
         {
             this.Strongs = (0, 'X');
         }

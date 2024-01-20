@@ -1,5 +1,6 @@
 namespace AVSearch.Model.Features
 {
+    using AVSearch.Interfaces;
     using AVSearch.Model.Results;
 
     public abstract class FeaturePartOfSpeech : FeatureGeneric
@@ -20,7 +21,7 @@ namespace AVSearch.Model.Features
             }
             return this.NegatableZeroMatch;
         }
-        protected FeaturePartOfSpeech(string text, bool negate) : base(text, negate)
+        protected FeaturePartOfSpeech(string text, bool negate, ISettings settings) : base(text, negate, settings)
         {
             this.PnPos12 = 0;
             this.Pos32 = 0;

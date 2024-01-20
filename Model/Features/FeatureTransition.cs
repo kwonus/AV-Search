@@ -1,5 +1,6 @@
 ﻿namespace AVSearch.Model.Features
 {
+    using AVSearch.Interfaces;
     using AVSearch.Model.Results;
 
     public abstract class FeatureTransition : FeatureGeneric
@@ -15,7 +16,7 @@
             }
             return this.NegatableZeroMatch;
         }
-        protected FeatureTransition(string text, bool negate) : base(text, negate)
+        protected FeatureTransition(string text, bool negate, ISettings settings) : base(text, negate, settings)
         {
             this.Transition = 0;
         }

@@ -20,12 +20,12 @@ namespace AVSearch.Model.Types
         public string Text { get; protected set; }
         public WildcardType TermType { get; protected set; }
 
-        protected TypeWildcard(string text)
+        protected TypeWildcard(string text, WildcardType type)
         {
             this.Contains = new();
             this.ContainsHyphenated = new();
             this.Text = text;
-            this.TermType = WildcardType.EnglishTerm;
+            this.TermType = type;
         }
         public HashSet<UInt16> GetLexemes(ISettings settings)
         {

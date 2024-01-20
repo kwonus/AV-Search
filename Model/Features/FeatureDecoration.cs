@@ -1,5 +1,6 @@
 namespace AVSearch.Model.Features
 {
+    using AVSearch.Interfaces;
     using AVSearch.Model.Results;
 
     public abstract class FeatureDecoration : FeatureGeneric
@@ -11,7 +12,7 @@ namespace AVSearch.Model.Features
         {
             return 0;
         }
-        protected FeatureDecoration(string text, bool negate) : base(text, negate)
+        protected FeatureDecoration(string text, bool negate, ISettings settings) : base(text, negate, settings)
         {
             this.Decoration = 0;
         }

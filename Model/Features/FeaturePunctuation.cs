@@ -1,5 +1,6 @@
 namespace AVSearch.Model.Features
 {
+    using AVSearch.Interfaces;
     using AVSearch.Model.Results;
 
     public abstract class FeaturePunctuation : FeatureGeneric
@@ -15,7 +16,7 @@ namespace AVSearch.Model.Features
             }
             return this.NegatableZeroMatch; 
         }
-        protected FeaturePunctuation(string text, bool negate) : base(text, negate)
+        protected FeaturePunctuation(string text, bool negate, ISettings settings) : base(text, negate, settings)
         {
             this.Punctuation = 0;
         }

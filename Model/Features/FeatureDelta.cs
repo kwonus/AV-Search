@@ -1,5 +1,6 @@
 ﻿namespace AVSearch.Model.Features
 {
+    using AVSearch.Interfaces;
     using AVSearch.Model.Results;
     using AVXLib;
     using AVXLib.Memory;
@@ -16,7 +17,7 @@
             bool result = this.Negate ? !delta : delta;            
             return result ? FeatureGeneric.FullMatch : FeatureGeneric.ZeroMatch;
         }
-        protected FeatureDelta(string text, bool negate) : base(text, negate)
+        protected FeatureDelta(string text, bool negate, ISettings settings) : base(text, negate, settings)
         {
             ;
         }
