@@ -4,13 +4,12 @@
 
     public interface ISettings
     {
-        bool EnableFuzzyLemmata { get; }
         bool SearchAsAV { get; }
         bool SearchAsAVX { get; }
         bool RenderAsAV { get; }
         bool RenderAsAVX { get; }
         int RenderingFormat { get; }
-        byte SearchSimilarity { get; }  // 0 | 100 | 33 to 99
+        (byte word, byte lemma) SearchSimilarity { get; }  // 0 | 100 | 33 to 99
         ushort SearchSpan { get; }  // 0 to 999
 
         const int Formatting_JSON = 0;

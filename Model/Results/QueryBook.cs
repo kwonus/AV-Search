@@ -142,7 +142,9 @@ namespace AVSearch.Model.Results
                             {
                                 QueryTag tag = new(options, feature, writ[wi].BCVWc);
 
-                                found = (feature.Compare(writ[wi], ref match, ref tag) >= expression.Settings.SearchSimilarity);
+                                (byte word, byte lemma) thresholds = expression.Settings.SearchSimilarity;
+
+                                found = (feature.Compare(writ[wi], ref match, ref tag) >= expression.Settings.SearchSimilarity.word);
 
                                 if (found)
                                 {
@@ -289,7 +291,7 @@ namespace AVSearch.Model.Results
                             {
                                 QueryTag tag = new(options, feature, writ[wi].BCVWc);
 
-                                if (feature.Compare(writ[wi], ref match, ref tag) >= expression.Settings.SearchSimilarity)
+                                if (feature.Compare(writ[wi], ref match, ref tag) >= expression.Settings.SearchSimilarity.word)
                                 {
                                     feature.IncrementHits();
 
