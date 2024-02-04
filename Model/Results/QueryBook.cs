@@ -8,6 +8,7 @@ namespace AVSearch.Model.Results
     using AVSearch.Model.Results;
     using AVXLib.Memory;
     using PhonemeEmbeddings;
+    using System.Linq.Expressions;
 
     public class QueryBook : TypeBook
     {
@@ -36,9 +37,9 @@ namespace AVSearch.Model.Results
                     (byte chapter, byte verse) to = (bk.chapterCnt, 0xFF);
 
                     if (expression.Quoted)
-                        SearchQuoted(expression, from, to);
+                        SearchQuotedV2(expression, from, to);
                     else
-                        SearchUnquoted(expression, from, to);
+                        SearchUnquotedV1(expression, from, to);
                 }
                 else
                 {
@@ -48,9 +49,9 @@ namespace AVSearch.Model.Results
                         (byte chapter, byte verse) to = (c, 0xFF);
 
                         if (expression.Quoted)
-                            SearchQuoted(expression, from, to);
+                            SearchQuotedV2(expression, from, to);
                         else
-                            SearchUnquoted(expression, from, to);
+                            SearchUnquotedV1(expression, from, to);
                     }
                     foreach (var rangesByChapter in this.ChapterVerseRange)
                     {
@@ -63,9 +64,9 @@ namespace AVSearch.Model.Results
                             to.verse   = range.Verse.to;
 
                             if (expression.Quoted)
-                                SearchQuoted(expression, from, to);
+                                SearchQuotedV2(expression, from, to);
                             else
-                                SearchUnquoted(expression, from, to);
+                                SearchUnquotedV1(expression, from, to);
                         }
                     }
                 }
@@ -73,7 +74,180 @@ namespace AVSearch.Model.Results
             return result;
 
         }
-        private bool SearchQuoted(SearchExpression expression, (byte chapter, byte verse) from, (byte chapter, byte verse) to)
+        private bool SearchQuotedUsingSpan(ref readonly Book book, ref readonly ReadOnlySpan<Chapter> chapters, ref readonly ReadOnlySpan<Written> writ, ref SearchExpression expression, in Dictionary<string, SearchFragment> fragments, in (byte chapter, byte verse) until, in UInt32 w, in BCVW bcvw)
+        {
+            int wi = (int)w;
+            UInt16 span = expression.Settings.SearchSpan;
+
+            bool prematureVerse = (until.verse < chapters[until.chapter - 1].verseCnt);
+            bool prematureChapter = (until.chapter < book.chapterCnt);
+
+            UInt16 wcnt = span > 0 ? span : writ[(int)wi].BCVWc.WC;
+            if ( (wi + wcnt) > book.writCnt)
+            {
+                var cnt = book.writCnt - wi;
+                if (cnt > UInt16.MaxValue)
+                    return false;
+                wcnt = (UInt16)cnt;
+            }
+            int wend = (int)(wi + wcnt);
+
+            Dictionary<BCVW, HashSet<string>> hits = new();
+            Dictionary<string, List<QueryMatch>> matches = new();
+
+            while (wi < wend)
+            {
+                if (prematureChapter && (writ[(int)wi].BCVWc.C > until.chapter))
+                    break;
+                if (prematureVerse && (writ[(int)wi].BCVWc.C == until.chapter) && (writ[(int)wi].BCVWc.V > until.verse))
+                    break;
+
+                byte c = writ[(int)wi].BCVWc.C;
+
+                foreach (SearchFragment fragment in fragments.Values)
+                {
+                    bool found = false;
+                    bool success = false;
+                    UInt32 matched = 0;
+                    foreach (SearchMatchAny options in fragment.AllOf)
+                    {
+                        QueryMatch match = new(writ[wi].BCVWc, ref expression, fragment);
+
+                        foreach (FeatureGeneric feature in options.AnyFeature)
+                        {
+                            if (wi >= wend)
+                            {
+                                return false;
+                            }
+                            QueryTag tag = new(options, feature, writ[wi].BCVWc);
+
+                            (byte word, byte lemma) thresholds = expression.Settings.SearchSimilarity;
+
+                            UInt16 score = feature.Compare(writ[wi], ref match, ref tag);
+                            found = (score > 0) && (score >= expression.Settings.SearchSimilarity.word);
+
+                            if (found)
+                            {
+                                matched++;
+                                // Avoid double [redundant] counting of feature hits
+                                //
+                                BCVW coordinates = writ[wi].BCVWc;
+                                if (!hits.ContainsKey(coordinates))
+                                {
+                                    hits[coordinates] = new() { feature.Text };
+                                    feature.IncrementHits();
+                                }
+                                else
+                                {
+                                    HashSet<string> features = hits[coordinates];
+
+                                    if (!features.Contains(feature.Text))
+                                    {
+                                        features.Add(feature.Text);
+                                        feature.IncrementHits();
+                                    }
+                                }
+                                // END double/redundant counting logic
+
+                                if (!matches.ContainsKey(fragment.Fragment))
+                                {
+                                    matches[fragment.Fragment] = new();
+                                }
+                                match.Add(ref tag);
+                                matches[fragment.Fragment].Add(match);
+                                wi++;
+                                break;
+                            }
+                            else
+                            {
+                                if (fragment.Anchored)
+                                {
+                                    return false; // anchored needs this w to be a match
+                                }
+                                wi++;
+                            }
+                        }
+                        success = (matched == fragment.AllOf.Count);
+                        if (success)
+                            break;
+                    }   // end: MatchAll
+                    if (!success)
+                    {
+                        return false;
+                    }
+                }   // end: foreach fragment
+
+                if (matches.Count == fragments.Count)
+                {
+                    expression.IncrementHits();
+                    this.TotalHits++;
+
+                    QueryBook bk = expression.Books[book.bookNum];
+                    bk.IncrementHits();
+
+                    QueryChapter chapter;
+                    if (bk.Chapters.ContainsKey(c))
+                    {
+                        chapter = this.Chapters[c];
+                        chapter.IncrementHits();
+                    }
+                    else
+                    {
+                        chapter = new(c);
+                        this.Chapters[c] = chapter;
+                    }
+                    foreach (string frag in matches.Keys)
+                    {
+                        List<QueryMatch> collection = matches[frag];
+                        foreach (QueryMatch match in collection)
+                        {
+                            chapter.Matches.Add(match);
+                        }
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
+        private bool SearchQuotedV2(SearchExpression expression, (byte chapter, byte verse) from, (byte chapter, byte verse) to)
+        {
+            Dictionary<string, SearchFragment> normalizedFragments = new();
+            foreach (SearchFragment frag in expression.Fragments)
+            {
+                if (!normalizedFragments.ContainsKey(frag.Fragment))
+                {
+                    normalizedFragments[frag.Fragment] = frag;
+                }
+            }
+            var book = ObjectTable.AVXObjects.Mem.Book.Slice(this.BookNum).Span[0];
+            var chapters = ObjectTable.AVXObjects.Mem.Chapter.Slice(book.chapterIdx, book.chapterCnt).Span;
+            var start = from;
+            var until = to;
+            if (start.chapter < 1 || start.chapter > book.chapterCnt)
+                return false;
+            if (start.verse < 1 || start.verse > chapters[start.chapter - 1].verseCnt)
+                return false;
+            if (until.verse < 1)
+                return false;
+            if (until.verse > chapters[until.chapter - 1].verseCnt)
+                until.verse = chapters[until.chapter - 1].verseCnt; // we allow 0xFF to represent the last verse of the chapter here
+
+            var writ = book.written.Slice(0, (int)book.writCnt).Span;
+            bool found = false;
+            UInt32 bcv = (UInt32)((book.bookNum << 24) | (start.chapter << 16) | (start.verse << 8));
+            for (UInt32 w = 0; writ[(int)w].BCVWc.C < start.chapter || writ[(int)w].BCVWc.V < start.verse; w++)
+                ;
+            for (UInt32 w = 0; w < book.writCnt; w++)
+            {
+                BCVW bcvw = writ[(int)w].BCVWc;
+                if (SearchQuotedUsingSpan(ref book, ref chapters, ref writ, ref expression, in normalizedFragments, in until, in w, in bcvw))
+                {
+                    found = true;
+                }
+            }
+            return found;
+        }
+        private bool SearchQuotedV1(SearchExpression expression, (byte chapter, byte verse) from, (byte chapter, byte verse) to)
         {
             Dictionary<string, SearchFragment> normalizedFragments = new();
             foreach (SearchFragment frag in expression.Fragments)
@@ -242,7 +416,7 @@ namespace AVSearch.Model.Results
             }
             return hit;
         }
-        private bool SearchUnquoted(SearchExpression expression, (byte chapter, byte verse) from, (byte chapter, byte verse) to)
+        private bool SearchUnquotedV1(SearchExpression expression, (byte chapter, byte verse) from, (byte chapter, byte verse) to)
         {
             Dictionary<string, SearchFragment> normalizedFragments = new();
             foreach (SearchFragment frag in expression.Fragments)
