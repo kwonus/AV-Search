@@ -124,9 +124,11 @@ namespace AVSearch.Model.Results
                 Dictionary<BCVW, HashSet<string>> hits = new();
                 Dictionary<string, List<QueryMatch>> matches = new();
                 int wend = (int)w + fragCnt;
+                if (wend >= book.writCnt)
+                    break;
 
                 byte c = writ[(int)w].BCVWc.C;
-                for (int wi = (int)w; wi < wend; wi++)
+                for (int wi = (int)w; wi < wend; /**/)
                 {
                     matches.Clear();
                     foreach (SearchFragment fragment in expression.Fragments)
@@ -140,6 +142,15 @@ namespace AVSearch.Model.Results
 
                             foreach (FeatureGeneric feature in options.AnyFeature)
                             {
+                                if (matched == 0)
+                                {
+                                    matches.Clear();
+                                }
+                                if (wi >= wend)
+                                {
+                                    matches.Clear();
+                                    break;
+                                }
                                 QueryTag tag = new(options, feature, writ[wi].BCVWc);
 
                                 (byte word, byte lemma) thresholds = expression.Settings.SearchSimilarity;
@@ -152,13 +163,14 @@ namespace AVSearch.Model.Results
                                     // Avoid double [redundant] counting of feature hits
                                     //
                                     BCVW coordinates = writ[wi].BCVWc;
+                                    wi++;
                                     if (!hits.ContainsKey(coordinates))
                                     {
                                         hits[coordinates] = new() { feature.Text };
                                         feature.IncrementHits();
                                     }
                                     else
-                                    { 
+                                    {
                                         HashSet<string> features = hits[coordinates];
 
                                         if (!features.Contains(feature.Text))
@@ -177,9 +189,13 @@ namespace AVSearch.Model.Results
                                     matches[fragment.Fragment].Add(match);
                                     break;
                                 }
-                                else if (fragment.Anchored)
+                                else
                                 {
-                                    break;
+                                    wi++;
+                                    if (fragment.Anchored)
+                                    {
+                                        break;
+                                    }
                                 }
                             }
                             success = (matched == fragment.AllOf.Count);
@@ -218,6 +234,7 @@ namespace AVSearch.Model.Results
                                     chapter.Matches.Add(match);
                                 }
                             }
+                            matches.Clear();///
                             break;
                         }
                     }
