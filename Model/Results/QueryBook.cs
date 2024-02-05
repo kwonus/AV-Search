@@ -5,10 +5,7 @@ namespace AVSearch.Model.Results
     using AVSearch.Model.Types;
     using AVXLib;
     using System;
-    using AVSearch.Model.Results;
     using AVXLib.Memory;
-    using PhonemeEmbeddings;
-    using System.Linq.Expressions;
 
     public class QueryBook : TypeBook
     {
@@ -37,9 +34,9 @@ namespace AVSearch.Model.Results
                     (byte chapter, byte verse) to = (bk.chapterCnt, 0xFF);
 
                     if (expression.Quoted)
-                        SearchQuotedV2(expression, from, to);
+                        SearchQuoted(expression, from, to);
                     else
-                        SearchUnquotedV2(expression, from, to);
+                        SearchUnquoted(expression, from, to);
                 }
                 else
                 {
@@ -49,9 +46,9 @@ namespace AVSearch.Model.Results
                         (byte chapter, byte verse) to = (c, 0xFF);
 
                         if (expression.Quoted)
-                            SearchQuotedV2(expression, from, to);
+                            SearchQuoted(expression, from, to);
                         else
-                            SearchUnquotedV2(expression, from, to);
+                            SearchUnquoted(expression, from, to);
                     }
                     foreach (var rangesByChapter in this.ChapterVerseRange)
                     {
@@ -64,9 +61,9 @@ namespace AVSearch.Model.Results
                             to.verse   = range.Verse.to;
 
                             if (expression.Quoted)
-                                SearchQuotedV2(expression, from, to);
+                                SearchQuoted(expression, from, to);
                             else
-                                SearchUnquotedV2(expression, from, to);
+                                SearchUnquoted(expression, from, to);
                         }
                     }
                 }
@@ -209,7 +206,7 @@ namespace AVSearch.Model.Results
             }
             return false;
         }
-        private bool SearchQuotedV2(SearchExpression expression, (byte chapter, byte verse) from, (byte chapter, byte verse) to)
+        private bool SearchQuoted(SearchExpression expression, (byte chapter, byte verse) from, (byte chapter, byte verse) to)
         {
             Dictionary<string, SearchFragment> normalizedFragments = new();
             foreach (SearchFragment frag in expression.Fragments)
@@ -357,7 +354,7 @@ namespace AVSearch.Model.Results
             return false;
         }
 
-        private bool SearchUnquotedV2(SearchExpression expression, (byte chapter, byte verse) from, (byte chapter, byte verse) to)
+        private bool SearchUnquoted(SearchExpression expression, (byte chapter, byte verse) from, (byte chapter, byte verse) to)
         {
             Dictionary<string, SearchFragment> normalizedFragments = new();
             foreach (SearchFragment frag in expression.Fragments)
@@ -409,121 +406,6 @@ namespace AVSearch.Model.Results
                 }
             }
             return (finds > 0);
-        }
-        private bool SearchUnquotedV1(SearchExpression expression, (byte chapter, byte verse) from, (byte chapter, byte verse) to)
-        {
-            Dictionary<string, SearchFragment> normalizedFragments = new();
-            foreach (SearchFragment frag in expression.Fragments)
-            {
-                if (!normalizedFragments.ContainsKey(frag.Fragment))
-                {
-                    normalizedFragments[frag.Fragment] = frag;
-                }
-            }
-            var book = ObjectTable.AVXObjects.Mem.Book.Slice(this.BookNum).Span[0];
-            var chapters = ObjectTable.AVXObjects.Mem.Chapter.Slice(book.chapterIdx, book.chapterCnt).Span;
-            var start = from;
-            var until = to;
-            if (start.chapter < 1 || start.chapter > book.chapterCnt)
-                return false;
-            if (start.verse < 1 || start.verse > chapters[start.chapter - 1].verseCnt)
-                return false;
-            if (until.verse < 1)
-                return false;
-            if (until.verse > chapters[until.chapter - 1].verseCnt)
-                until.verse = chapters[until.chapter - 1].verseCnt; // we allow 0xFF to represent the last verse of the chapter here
-
-            bool prematureVerse = (until.verse < chapters[until.chapter - 1].verseCnt);
-            bool prematureChapter = (until.chapter < book.chapterCnt);
-
-            var fragCnt = expression.Fragments.Count;
-
-            if (fragCnt < 1)
-                return false;
-
-            bool hit = false;
-
-            UInt32 w = 0;
-
-            var bcv = (UInt32)((book.bookNum << 24) | (start.chapter << 16) | (start.verse << 8));
-
-            var writ = book.written.Slice(0, (int)book.writCnt).Span;
-            for (w = 0; writ[(int)w].BCVWc.C < start.chapter || writ[(int)w].BCVWc.V < start.verse; w++)
-                ;
-
-            Dictionary<string, List<QueryMatch>> matches = new();
-            for (/**/; w + fragCnt - 1 < book.writCnt; w++)
-            {
-                if (prematureChapter && (writ[(int)w].BCVWc.C > until.chapter))
-                    break;
-                if (prematureVerse && (writ[(int)w].BCVWc.C == until.chapter) && (writ[(int)w].BCVWc.V > until.verse))
-                    break;
-
-                int wend = (int)w + fragCnt;
-                byte c = writ[(int)w].BCVWc.C;
-                matches.Clear();
-                for (int wi = (int)w; wi < wend; wi++)
-                {
-                    foreach (string key in normalizedFragments.Keys)
-                    {
-                        SearchFragment fragment = normalizedFragments[key];
-
-                        foreach (SearchMatchAny options in fragment.AllOf)
-                        {
-                            QueryMatch match = new(writ[wi].BCVWc, ref expression, fragment);
-
-                            foreach (FeatureGeneric feature in options.AnyFeature)
-                            {
-                                QueryTag tag = new(options, feature, writ[wi].BCVWc);
-
-                                if (feature.Compare(writ[wi], ref match, ref tag) >= expression.Settings.SearchSimilarity.word)
-                                {
-                                    feature.IncrementHits();
-
-                                    if (!matches.ContainsKey(fragment.Fragment))
-                                    {
-                                        matches[fragment.Fragment] = new();
-                                    }
-                                    match.Add(ref tag);
-                                    matches[fragment.Fragment].Add(match);
-                                }
-                            }
-                        }
-                    }
-                    if (matches.Count == normalizedFragments.Count)
-                    {
-                        hit = true;
-
-                        expression.IncrementHits();
-                        this.TotalHits++;
-
-                        QueryBook bk = expression.Books[book.bookNum];
-                        bk.IncrementHits();
-
-                        QueryChapter chapter;
-                        if (bk.Chapters.ContainsKey(c))
-                        {
-                            chapter = this.Chapters[c];
-                            chapter.IncrementHits();
-                        }
-                        else
-                        {                            
-                            chapter = new(c);
-                            this.Chapters[c] = chapter;
-                        }
-                        foreach (string frag in matches.Keys)
-                        {
-                            List<QueryMatch> collection = matches[frag];
-                            foreach (QueryMatch match in collection)
-                            {
-                                chapter.Matches.Add(match);
-                            }
-                        }
-                        matches.Clear();
-                    }
-                }
-            }
-            return hit;
         }
         public bool AddRestrictiveRange(SearchFilter.RangeFilter range)
         {
