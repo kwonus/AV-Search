@@ -104,14 +104,15 @@ namespace AVSearch.Model.Results
                 foreach (SearchFragment fragment in fragments.Values)
                 {
                     bool found = false;
-                    bool success = false;
-                    UInt32 matched = 0;
+                    bool all_of_match_success = false;
+                    UInt32 all_of_match_cnt = 0;
                     foreach (SearchMatchAny options in fragment.AllOf)
                     {
                         QueryMatch match = new(writ[wi].BCVWc, ref expression, fragment);
 
                         foreach (FeatureGeneric feature in options.AnyFeature)
                         {
+                            UNANCHORED_RETRY:
                             if (wi >= wend)
                             {
                                 return false;
@@ -125,7 +126,7 @@ namespace AVSearch.Model.Results
 
                             if (found)
                             {
-                                matched++;
+                                all_of_match_cnt++;
                                 // Avoid double [redundant] counting of feature hits
                                 //
                                 BCVW coordinates = writ[wi].BCVWc;
@@ -155,23 +156,22 @@ namespace AVSearch.Model.Results
                                 wi++;
                                 break;
                             }
-                            else
+                            if (!fragment.Anchored)
                             {
-                                if (fragment.Anchored)
-                                {
-                                    return false; // anchored needs this w to be a match
-                                }
                                 wi++;
+                                goto UNANCHORED_RETRY;
                             }
                         }
-                        success = (matched == fragment.AllOf.Count);
-                        if (success)
+                        all_of_match_success = (all_of_match_cnt == fragment.AllOf.Count);
+                        if (all_of_match_success)
+                        {
                             break;
+                        }
+                        else if (fragment.Anchored)
+                        {
+                            return false; // anchored needs this w to be a match
+                        }
                     }   // end: MatchAll
-                    if (!success)
-                    {
-                        return false;
-                    }
                 }   // end: foreach fragment
 
                 if (matches.Count == fragments.Count)
