@@ -108,6 +108,10 @@ namespace AVSearch.Model.Results
                     UInt32 all_of_match_cnt = 0;
                     foreach (SearchMatchAny options in fragment.AllOf)
                     {
+                        if (wi >= wend)
+                        {
+                            return false;
+                        }
                         QueryMatch match = new(writ[wi].BCVWc, ref expression, fragment);
 
                         foreach (FeatureGeneric feature in options.AnyFeature)
