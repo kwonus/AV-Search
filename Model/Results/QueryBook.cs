@@ -202,7 +202,8 @@ namespace AVSearch.Model.Results
                         List<QueryMatch> collection = matches[frag];
                         foreach (QueryMatch match in collection)
                         {
-                            chapter.Matches.Add(match);
+                            UInt32 cnt = (UInt32) (chapter.Matches.Count + 1);
+                            chapter.Matches[cnt] = match;
                         }
                     }
                     return true;
@@ -349,7 +350,8 @@ namespace AVSearch.Model.Results
                         List<QueryMatch> collection = matches[frag];
                         foreach (QueryMatch match in collection)
                         {
-                            chapter.Matches.Add(match);
+                            UInt32 cnt = (UInt32)(chapter.Matches.Count + 1);
+                            chapter.Matches[cnt] = match;
                         }
                     }
                     return true;
