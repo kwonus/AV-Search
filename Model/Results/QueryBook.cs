@@ -11,7 +11,7 @@ namespace AVSearch.Model.Results
     {
         public HashSet<byte> ChapterRange;
         public Dictionary<byte, List<SearchFilter.VerseRange>> ChapterVerseRange;
-        public QueryBook(byte num)
+        public QueryBook(byte num) : base()
         {
             this.BookNum = num;
             this.Chapters = new();
@@ -90,7 +90,6 @@ namespace AVSearch.Model.Results
             int wend = (int)(wi + wcnt);
 
             Dictionary<BCVW, HashSet<string>> hits = new();
-            Dictionary<string, List<QueryMatch>> matches = new();
 
             while (wi < wend)
             {
@@ -100,6 +99,8 @@ namespace AVSearch.Model.Results
                     break;
 
                 byte c = writ[(int)wi].BCVWc.C;
+
+                QueryMatch match = new(writ[wi].BCVWc, ref expression);
 
                 foreach (SearchFragment fragment in fragments.Values)
                 {
@@ -112,8 +113,6 @@ namespace AVSearch.Model.Results
                         {
                             return false;
                         }
-                        QueryMatch match = new(writ[wi].BCVWc, ref expression, fragment);
-
                         foreach (FeatureGeneric feature in options.AnyFeature)
                         {
                             UNANCHORED_RETRY:
@@ -121,7 +120,7 @@ namespace AVSearch.Model.Results
                             {
                                 return false;
                             }
-                            QueryTag tag = new(options, feature, writ[wi].BCVWc);
+                            QueryTag tag = new(fragment, options, feature, writ[wi].BCVWc);
 
                             (byte word, byte lemma) thresholds = expression.Settings.SearchSimilarity;
 
@@ -151,12 +150,7 @@ namespace AVSearch.Model.Results
                                 }
                                 // END double/redundant counting logic
 
-                                if (!matches.ContainsKey(fragment.Fragment))
-                                {
-                                    matches[fragment.Fragment] = new();
-                                }
                                 match.Add(ref tag);
-                                matches[fragment.Fragment].Add(match);
                                 wi++;
                                 break;
                             }
@@ -178,7 +172,7 @@ namespace AVSearch.Model.Results
                     }   // end: MatchAll
                 }   // end: foreach fragment
 
-                if (matches.Count == fragments.Count)
+                if (match.Highlights.Count == fragments.Count)
                 {
                     expression.IncrementHits();
                     this.TotalHits++;
@@ -197,15 +191,9 @@ namespace AVSearch.Model.Results
                         chapter = new(c);
                         this.Chapters[c] = chapter;
                     }
-                    foreach (string frag in matches.Keys)
-                    {
-                        List<QueryMatch> collection = matches[frag];
-                        foreach (QueryMatch match in collection)
-                        {
-                            UInt32 cnt = (UInt32) (chapter.Matches.Count + 1);
-                            chapter.Matches[cnt] = match;
-                        }
-                    }
+                    UInt32 cnt = (UInt32)(bk.Matches.Count + 1);
+                    bk.Matches[cnt] = match;
+
                     return true;
                 }
             }
@@ -267,12 +255,12 @@ namespace AVSearch.Model.Results
             int wend = (int)(w + wcnt);
 
             Dictionary<BCVW, HashSet<string>> hits = new();
-            Dictionary<string, List<QueryMatch>> matches = new();
-
+ 
             foreach (SearchFragment fragment in fragments.Values)
             {
                 for (int wi = (int)w; wi < wend; wi++)
                 {
+                    QueryMatch match = new(writ[wi].BCVWc, ref expression);
                     if (prematureChapter && (writ[(int)wi].BCVWc.C > until.chapter))
                         break;
                     if (prematureVerse && (writ[(int)wi].BCVWc.C == until.chapter) && (writ[(int)wi].BCVWc.V > until.verse))
@@ -280,11 +268,9 @@ namespace AVSearch.Model.Results
 
                     foreach (SearchMatchAny options in fragment.AllOf)
                     {
-                        QueryMatch match = new(writ[wi].BCVWc, ref expression, fragment);
-
                         foreach (FeatureGeneric feature in options.AnyFeature)
                         {
-                            QueryTag tag = new(options, feature, writ[wi].BCVWc);
+                            QueryTag tag = new(fragment, options, feature, writ[wi].BCVWc);
 
                             (byte word, byte lemma) thresholds = expression.Settings.SearchSimilarity;
 
@@ -313,49 +299,40 @@ namespace AVSearch.Model.Results
                                 }
                                 // END double/redundant counting logic
 
-                                if (!matches.ContainsKey(fragment.Fragment))
-                                {
-                                    matches[fragment.Fragment] = new();
-                                }
                                 match.Add(ref tag);
-                                matches[fragment.Fragment].Add(match);
-                                break;
+
+                                if (match.Highlights.Count == fragments.Count)
+                                {
+                                    byte b = book.bookNum;
+                                    byte c = writ[(int)w].BCVWc.C;
+
+                                    expression.IncrementHits();
+                                    this.TotalHits++;
+
+                                    QueryBook bk = expression.Books[b];
+                                    bk.IncrementHits();
+
+                                    QueryChapter chapter;
+                                    if (bk.Chapters.ContainsKey(c))
+                                    {
+                                        chapter = this.Chapters[c];
+                                        chapter.IncrementHits();
+                                    }
+                                    else
+                                    {
+                                        chapter = new(c);
+                                        this.Chapters[c] = chapter;
+                                    }
+                                    UInt32 cnt = (UInt32)(bk.Matches.Count + 1);
+                                    bk.Matches[cnt] = match;
+
+                                    return true;
+                                }
+                                else break;
                             }
                         }
                     }   // end: MatchAll
                 }   // end: foreach fragment
-                if (matches.Count == fragments.Count)
-                {
-                    byte c = writ[(int)w].BCVWc.C;
-
-                    expression.IncrementHits();
-                    this.TotalHits++;
-
-                    QueryBook bk = expression.Books[book.bookNum];
-                    bk.IncrementHits();
-
-                    QueryChapter chapter;
-                    if (bk.Chapters.ContainsKey(c))
-                    {
-                        chapter = this.Chapters[c];
-                        chapter.IncrementHits();
-                    }
-                    else
-                    {
-                        chapter = new(c);
-                        this.Chapters[c] = chapter;
-                    }
-                    foreach (string frag in matches.Keys)
-                    {
-                        List<QueryMatch> collection = matches[frag];
-                        foreach (QueryMatch match in collection)
-                        {
-                            UInt32 cnt = (UInt32)(chapter.Matches.Count + 1);
-                            chapter.Matches[cnt] = match;
-                        }
-                    }
-                    return true;
-                }
             }
             return false;
         }

@@ -4,10 +4,9 @@ namespace AVSearch.Model.Results
  
     public class QueryMatch
     {
-        public QueryMatch(AVXLib.Memory.BCVW start, ref SearchExpression exp, SearchFragment frag)
+        public QueryMatch(AVXLib.Memory.BCVW start, ref SearchExpression exp)
         {
             this.Expression = exp;
-            this.Fragment = frag;
 
             this.Highlights = new();
 
@@ -27,7 +26,5 @@ namespace AVSearch.Model.Results
 
         public List<QueryTag> Highlights { get; private set; }
         public SearchExpression Expression { get; private set; }
-        public SearchFragment Fragment { get; private set; }
-
     }
 }

@@ -11,11 +11,9 @@
 		public UInt64 TotalHits { get; protected set; }
         public UInt64 VerseHits { get => 0; }
 
-        public Dictionary<UInt32, QueryMatch> Matches { get; protected set; }
-
         protected TypeChapter()
         {
-            this.Matches = new();
+            ;
         }
 
         public void IncrementHits()
