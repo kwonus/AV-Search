@@ -55,6 +55,9 @@ namespace AVSearch.Model.Results
                         (byte chapter, byte verse) from = (rangesByChapter.Key, 0);
                         (byte chapter, byte verse) to   = (rangesByChapter.Key, 0);
 
+                        if ((from.chapter == to.chapter) && this.ChapterRange.Contains(from.chapter))
+                            continue; // we have already searched this entire chapter.
+
                         foreach (var range in rangesByChapter.Value)
                         {
                             from.verse = range.Verse.from;
@@ -255,12 +258,18 @@ namespace AVSearch.Model.Results
             int wend = (int)(w + wcnt);
 
             Dictionary<BCVW, HashSet<string>> hits = new();
- 
-            foreach (SearchFragment fragment in fragments.Values)
+
+            QueryMatch? match = null;
+            int fragCnt = fragments.Count;
+            Span<UInt16> fragFinds = stackalloc UInt16[fragCnt];
+            for (int i = 0; i < fragCnt; i++)
+                fragFinds[i] = 0;
+            for (int wi = (int)w; wi < wend; wi++)
             {
-                for (int wi = (int)w; wi < wend; wi++)
+                int f = -1;
+                foreach (SearchFragment fragment in fragments.Values)
                 {
-                    QueryMatch match = new(writ[wi].BCVWc, ref expression);
+                    ++f;
                     if (prematureChapter && (writ[(int)wi].BCVWc.C > until.chapter))
                         break;
                     if (prematureVerse && (writ[(int)wi].BCVWc.C == until.chapter) && (writ[(int)wi].BCVWc.V > until.verse))
@@ -277,61 +286,72 @@ namespace AVSearch.Model.Results
                             UInt16 score = feature.Compare(writ[wi], ref match, ref tag);
                             bool found = (score > 0) && (score >= expression.Settings.SearchSimilarity.word);
 
-                            if (found)
+                            if (!found)
+                                continue; // ... look for next options.AnyFeature
+
+                            fragFinds[f]++;
+
+                            BCVW coordinates = writ[wi].BCVWc;
+
+                            if (match == null)
                             {
+                                match = new(coordinates, ref expression);
+                            }
+                            if (!hits.ContainsKey(coordinates))
+                            {
+                                hits[coordinates] = new() { feature.Text };
+                                feature.IncrementHits();
+                            }
+                            else
+                            {
+                                HashSet<string> features = hits[coordinates];
+
                                 // Avoid double [redundant] counting of feature hits
                                 //
-                                BCVW coordinates = writ[wi].BCVWc;
-                                if (!hits.ContainsKey(coordinates))
+                                if (!features.Contains(feature.Text))
                                 {
-                                    hits[coordinates] = new() { feature.Text };
+                                    features.Add(feature.Text);
                                     feature.IncrementHits();
                                 }
-                                else
-                                {
-                                    HashSet<string> features = hits[coordinates];
-
-                                    if (!features.Contains(feature.Text))
-                                    {
-                                        features.Add(feature.Text);
-                                        feature.IncrementHits();
-                                    }
-                                }
-                                // END double/redundant counting logic
-
-                                match.Add(ref tag);
-
-                                if (match.Highlights.Count == fragments.Count)
-                                {
-                                    byte b = book.bookNum;
-                                    byte c = writ[(int)w].BCVWc.C;
-
-                                    expression.IncrementHits();
-                                    this.TotalHits++;
-
-                                    QueryBook bk = expression.Books[b];
-                                    bk.IncrementHits();
-
-                                    QueryChapter chapter;
-                                    if (bk.Chapters.ContainsKey(c))
-                                    {
-                                        chapter = this.Chapters[c];
-                                        chapter.IncrementHits();
-                                    }
-                                    else
-                                    {
-                                        chapter = new(c);
-                                        this.Chapters[c] = chapter;
-                                    }
-                                    UInt32 cnt = (UInt32)(bk.Matches.Count + 1);
-                                    bk.Matches[cnt] = match;
-
-                                    return true;
-                                }
-                                else break;
                             }
+
+                            match.Add(ref tag);
+
+                            // This fragment was found, have all fragments been found?
+                            for (int i = 0; i < fragCnt; i++)
+                                if (fragFinds[i] == 0)
+                                    goto NEXT_FRAGMENT;
+
+                            // Otherwise, all fragments have been found
+                            byte b = book.bookNum;
+                            byte c = writ[(int)w].BCVWc.C;
+
+                            expression.IncrementHits();
+                            this.TotalHits++;
+
+                            QueryBook bk = expression.Books[b];
+                            bk.IncrementHits();
+
+                            QueryChapter chapter;
+                            if (bk.Chapters.ContainsKey(c))
+                            {
+                                chapter = this.Chapters[c];
+                                chapter.IncrementHits();
+                            }
+                            else
+                            {
+                                chapter = new(c);
+                                this.Chapters[c] = chapter;
+                            }
+                            UInt32 cnt = (UInt32)(bk.Matches.Count + 1);
+                            bk.Matches[cnt] = match;
+
+                            return true;
                         }
                     }   // end: MatchAll
+
+                NEXT_FRAGMENT:
+                ;
                 }   // end: foreach fragment
             }
             return false;
