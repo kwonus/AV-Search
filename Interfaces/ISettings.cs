@@ -23,4 +23,9 @@
         const int Lexion_AVX = 2;
         const int Lexion_BOTH = 3;
     }
+
+    public interface ISetting
+    {
+        string SettingName { get; }
+    }
 }
