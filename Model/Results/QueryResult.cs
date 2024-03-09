@@ -6,22 +6,25 @@ namespace AVSearch.Model.Results
 
     public class QueryResult
     {
-        public QueryResult(IEnumerable<SearchExpression> expressions)
+        public QueryResult()
         {
-            this.Expressions = new();
-            foreach (var exp in expressions)
-                this.Expressions.Add(exp);
-            
-            this.QueryId = Guid.NewGuid();
+            this.Expression = null;
+            this.QueryId = Guid.Empty;
+        }
+        public QueryResult(SearchExpression expression)
+        {
+            this.Expression = expression;           
+            this.QueryId = expression != null ? Guid.NewGuid() : Guid.Empty;
         }
         public byte BookCnt
         {
             get
             {
                 byte cnt = 0;
-                foreach (var exp in this.Expressions)
+
+                if (this.Expression != null)
                 {
-                    foreach (var bk in exp.Books.Values)
+                    foreach (var bk in this.Expression.Books.Values)
                     {
                         if (bk.TotalHits > 0)
                             cnt++;
@@ -35,9 +38,10 @@ namespace AVSearch.Model.Results
             get
             {
                 UInt64 hits = 0;
-                foreach (var exp in this.Expressions)
+
+                if (this.Expression != null)
                 {
-                    foreach (var bk in exp.Books.Values)
+                    foreach (var bk in this.Expression.Books.Values)
                     {
                         if (bk.TotalHits > 0)
                             hits ++;
@@ -51,9 +55,10 @@ namespace AVSearch.Model.Results
             get
             {
                 UInt64 hits = 0;
-                foreach (var exp in this.Expressions)
+
+                if (this.Expression != null)
                 {
-                    foreach (var bk in exp.Books.Values)
+                    foreach (var bk in this.Expression.Books.Values)
                     {
                         if (bk.ChapterHits > 0)
                             hits += bk.ChapterHits;
@@ -63,16 +68,17 @@ namespace AVSearch.Model.Results
             }
         }
         public UInt32 ErrorCode { get; protected set; }
-        public List<SearchExpression> Expressions { get; protected set; }
+        public SearchExpression? Expression { get; protected set; }
         public Guid QueryId { get; protected set; }
         public ulong TotalHits
         {
             get
             {
                 UInt64 hits = 0;
-                foreach (var exp in this.Expressions)
+
+                if (this.Expression != null)
                 {
-                    foreach (var bk in exp.Books.Values)
+                    foreach (var bk in this.Expression.Books.Values)
                     {
                         if (bk.TotalHits > 0)
                             hits += bk.TotalHits;
@@ -86,9 +92,10 @@ namespace AVSearch.Model.Results
             get
             {
                 UInt64 hits = 0;
-                foreach (var exp in this.Expressions)
+
+                if (this.Expression != null)
                 {
-                    foreach (var bk in exp.Books.Values)
+                    foreach (var bk in this.Expression.Books.Values)
                     {
                         foreach (var ch in bk.Chapters.Values)
                         {

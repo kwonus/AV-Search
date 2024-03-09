@@ -12,7 +12,8 @@
 
         public ISettings Settings   { get; protected set; }
         public Dictionary<string, SearchFilter> Scope { get; protected set; }
-        public bool Valid           { get; protected set; }
+        public bool EmptySelection  { get => string.IsNullOrWhiteSpace(this.Expression) || (this.Scope.Count == 0); }
+        public bool IsValid         { get; protected set; }
         public Dictionary<byte, QueryBook> Books { get; protected set; }
         public QueryResult Query    { get; protected set; }
         public UInt64 Hits          { get; private set; }
@@ -23,11 +24,11 @@
             this.Expression = string.Empty;
             this.ExpressionIdx = 0;
             this.Fragments = new();
-            this.Valid = false;
             this.Books = new();
             this.Scope = new();
             this.Settings = settings;
             this.Query = query;
+            this.IsValid = false;
         }
 
         public bool AddScope(byte book)
