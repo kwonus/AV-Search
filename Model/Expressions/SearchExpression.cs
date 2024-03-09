@@ -12,7 +12,7 @@
 
         public ISettings Settings   { get; protected set; }
         public Dictionary<string, SearchFilter> Scope { get; protected set; }
-        public bool EmptySelection  { get => string.IsNullOrWhiteSpace(this.Expression) || (this.Scope.Count == 0); }
+        public bool EmptySelection  { get => string.IsNullOrWhiteSpace(this.Expression) && (this.Scope.Count == 0); }
         public bool IsValid         { get; protected set; }
         public Dictionary<byte, QueryBook> Books { get; protected set; }
         public QueryResult Query    { get; protected set; }
