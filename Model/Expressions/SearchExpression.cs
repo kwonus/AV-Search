@@ -11,7 +11,7 @@
         public List<SearchFragment> Fragments { get; protected set; }
 
         public ISettings Settings   { get; protected set; }
-        public Dictionary<string, SearchFilter> Scope { get; protected set; }
+        public Dictionary<byte, ScopingFilter> Scope { get; protected set; }
         public bool EmptySelection  { get => string.IsNullOrWhiteSpace(this.Expression) && (this.Scope.Count == 0); }
         public bool IsValid         { get; protected set; }
         public Dictionary<byte, QueryBook> Books { get; protected set; }
@@ -53,7 +53,7 @@
             return false;
         }
 
-        public bool AddScope(SearchFilter filter)
+        public bool AddScope(ScopingFilter filter)
         {
             byte book = filter.Book;
 
@@ -63,11 +63,6 @@
                 {
                     Books[book] = new QueryBook(book);
                 }
-                if (filter.Range != null)
-                {
-                    Books[book].AddRestrictiveRange(filter.Range);
-                }
-                return true;
             }
             return false;
         }

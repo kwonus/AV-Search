@@ -21,6 +21,6 @@
             this.TotalHits++;
         }
 
-        public abstract string Render(ISettings settings, SearchFilter.RangeFilter range);
+        public abstract string Render(ISettings settings, IEnumerable<ScopingFilter>? scope);
     }
 }
