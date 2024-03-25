@@ -6,17 +6,14 @@ namespace AVSearch.Model.Results
     using AVXLib;
     using System;
     using AVXLib.Memory;
+    using System.Reflection.Metadata.Ecma335;
 
     public class QueryBook : TypeBook
     {
-        public HashSet<byte> ChapterRange;
-        public Dictionary<byte, ScopingFilter> Scope;
         public QueryBook(byte num) : base()
         {
             this.BookNum = num;
             this.Chapters = new();
-            this.ChapterRange = new();
-            this.Scope = new();
         }
         public bool Search(SearchExpression expression)
         {
@@ -24,68 +21,21 @@ namespace AVSearch.Model.Results
 
             if (result)
             {
-                var bk = ObjectTable.AVXObjects.Mem.Book.Slice(this.BookNum).Span[0];
-
-                var book = bk.written;
-
-                if (expression.Scope.Count == 0)
-                {
-                    (byte chapter, byte verse) from = (1, 1);
-                    (byte chapter, byte verse) to = (bk.chapterCnt, 0xFF);
-
-                    if (expression.Quoted)
-                        SearchQuoted(expression, from, to);
-                    else
-                        SearchUnquoted(expression, from, to);
-                }
+                if (expression.Quoted)
+                    SearchQuoted(expression);
                 else
-                {
-                    foreach (byte c in this.ChapterRange)
-                    {
-                        (byte chapter, byte verse) from = (c, 1);
-                        (byte chapter, byte verse) to = (c, 0xFF);
-
-                        if (expression.Quoted)
-                            SearchQuoted(expression, from, to);
-                        else
-                            SearchUnquoted(expression, from, to);
-                    }
-                    foreach (var range in this.Scope)
-                    {
-                        (byte chapter, byte verse) from = (range.Key, 0);
-                        (byte chapter, byte verse) to   = (range.Key, 0);
-
-                        if ((from.chapter == to.chapter) && this.ChapterRange.Contains(from.chapter))
-                            continue; // we have already searched this entire chapter.
-// TO DO: TODO
-/*
-                        foreach (var range in range.Value)
-                        {
-                            from.verse = range.Verse.from;
-                            to.verse   = range.Verse.to;
-
-                            if (expression.Quoted)
-                                SearchQuoted(expression, from, to);
-                            else
-                                SearchUnquoted(expression, from, to);
-                        }
-*/
-                    }
-                }
+                    SearchUnquoted(expression);
             }
             return result;
-
         }
-        private bool SearchQuotedUsingSpan(ref readonly Book book, ref readonly ReadOnlySpan<Chapter> chapters, ref readonly ReadOnlySpan<Written> writ, ref SearchExpression expression, in Dictionary<string, SearchFragment> fragments, in (byte chapter, byte verse) until, in UInt32 w, in BCVW bcvw)
+
+        private bool SearchQuotedUsingSpan(ref readonly Book book, ref readonly ReadOnlySpan<Chapter> chapters, ref readonly ReadOnlySpan<Written> writ, ref SearchExpression expression, in Dictionary<string, SearchFragment> fragments, in UInt32 w, in BCVW bcvw)
         {
             int wi = (int)w;
             UInt16 span = expression.Settings.SearchSpan;
 
-            bool prematureVerse = (until.verse < chapters[until.chapter - 1].verseCnt);
-            bool prematureChapter = (until.chapter < book.chapterCnt);
-
             UInt16 wcnt = span > 0 ? span : writ[(int)wi].BCVWc.WC;
-            if ( (wi + wcnt) > book.writCnt)
+            if ((wi + wcnt) > book.writCnt)
             {
                 var cnt = book.writCnt - wi;
                 if (cnt > UInt16.MaxValue)
@@ -98,13 +48,11 @@ namespace AVSearch.Model.Results
 
             while (wi < wend)
             {
-                if (prematureChapter && (writ[(int)wi].BCVWc.C > until.chapter))
-                    break;
-                if (prematureVerse && (writ[(int)wi].BCVWc.C == until.chapter) && (writ[(int)wi].BCVWc.V > until.verse))
-                    break;
-
                 byte c = writ[(int)wi].BCVWc.C;
-
+                if (!expression.Scope.InScope(book.bookNum, c))
+                {
+                    continue;
+                }
                 QueryMatch match = new(writ[wi].BCVWc, ref expression);
 
                 foreach (SearchFragment fragment in fragments.Values)
@@ -120,7 +68,7 @@ namespace AVSearch.Model.Results
                         }
                         foreach (FeatureGeneric feature in options.AnyFeature)
                         {
-                            UNANCHORED_RETRY:
+                        UNANCHORED_RETRY:
                             if (wi >= wend)
                             {
                                 return false;
@@ -204,7 +152,7 @@ namespace AVSearch.Model.Results
             }
             return false;
         }
-        private bool SearchQuoted(SearchExpression expression, (byte chapter, byte verse) from, (byte chapter, byte verse) to)
+        private bool SearchQuoted(SearchExpression expression)
         {
             Dictionary<string, SearchFragment> normalizedFragments = new();
             foreach (SearchFragment frag in expression.Fragments)
@@ -216,38 +164,26 @@ namespace AVSearch.Model.Results
             }
             var book = ObjectTable.AVXObjects.Mem.Book.Slice(this.BookNum).Span[0];
             var chapters = ObjectTable.AVXObjects.Mem.Chapter.Slice(book.chapterIdx, book.chapterCnt).Span;
-            var start = from;
-            var until = to;
-            if (start.chapter < 1 || start.chapter > book.chapterCnt)
-                return false;
-            if (start.verse < 1 || start.verse > chapters[start.chapter - 1].verseCnt)
-                return false;
-            if (until.verse < 1)
-                return false;
-            if (until.verse > chapters[until.chapter - 1].verseCnt)
-                until.verse = chapters[until.chapter - 1].verseCnt; // we allow 0xFF to represent the last verse of the chapter here
-
             var writ = book.written.Slice(0, (int)book.writCnt).Span;
             bool found = false;
-            UInt32 bcv = (UInt32)((book.bookNum << 24) | (start.chapter << 16) | (start.verse << 8));
-            for (UInt32 w = 0; writ[(int)w].BCVWc.C < start.chapter || writ[(int)w].BCVWc.V < start.verse; w++)
-                ;
+
             for (UInt32 w = 0; w < book.writCnt; w++)
             {
                 BCVW bcvw = writ[(int)w].BCVWc;
-                if (SearchQuotedUsingSpan(ref book, ref chapters, ref writ, ref expression, in normalizedFragments, in until, in w, in bcvw))
+                if (!expression.Scope.InScope(book.bookNum, bcvw.C))
+                {
+                    continue;
+                }
+                if (SearchQuotedUsingSpan(ref book, ref chapters, ref writ, ref expression, in normalizedFragments, in w, in bcvw))
                 {
                     found = true;
                 }
             }
             return found;
         }
-        private bool SearchUnquotedUsingSpan(ref readonly Book book, ref readonly ReadOnlySpan<Chapter> chapters, ref readonly ReadOnlySpan<Written> writ, ref SearchExpression expression, in Dictionary<string, SearchFragment> fragments, in (byte chapter, byte verse) until, in UInt32 w, in BCVW bcvw)
+        private bool SearchUnquotedUsingSpan(ref readonly Book book, ref readonly ReadOnlySpan<Chapter> chapters, ref readonly ReadOnlySpan<Written> writ, ref SearchExpression expression, in Dictionary<string, SearchFragment> fragments, in UInt32 w, in BCVW bcvw)
         {
             UInt16 span = expression.Settings.SearchSpan;
-
-            bool prematureVerse = (until.verse < chapters[until.chapter - 1].verseCnt);
-            bool prematureChapter = (until.chapter < book.chapterCnt);
 
             UInt16 wcnt = span > 0 ? span : writ[(int)w].BCVWc.WC;
             if ((w + wcnt) > book.writCnt)
@@ -268,14 +204,16 @@ namespace AVSearch.Model.Results
                 fragFinds[i] = 0;
             for (int wi = (int)w; wi < wend; wi++)
             {
+                byte b = book.bookNum;
+                byte c = writ[(int)wi].BCVWc.C;
+                if (!expression.Scope.InScope(book.bookNum, c))
+                {
+                    continue;
+                }
                 int f = -1;
                 foreach (SearchFragment fragment in fragments.Values)
                 {
                     ++f;
-                    if (prematureChapter && (writ[(int)wi].BCVWc.C > until.chapter))
-                        break;
-                    if (prematureVerse && (writ[(int)wi].BCVWc.C == until.chapter) && (writ[(int)wi].BCVWc.V > until.verse))
-                        break;
 
                     foreach (SearchMatchAny options in fragment.AllOf)
                     {
@@ -325,8 +263,6 @@ namespace AVSearch.Model.Results
                                     goto NEXT_FRAGMENT;
 
                             // Otherwise, all fragments have been found
-                            byte b = book.bookNum;
-                            byte c = writ[(int)w].BCVWc.C;
 
                             expression.IncrementHits();
                             this.TotalHits++;
@@ -353,13 +289,13 @@ namespace AVSearch.Model.Results
                     }   // end: MatchAll
 
                 NEXT_FRAGMENT:
-                ;
+                    ;
                 }   // end: foreach fragment
             }
             return false;
         }
 
-        private bool SearchUnquoted(SearchExpression expression, (byte chapter, byte verse) from, (byte chapter, byte verse) to)
+        private bool SearchUnquoted(SearchExpression expression)
         {
             Dictionary<string, SearchFragment> normalizedFragments = new();
             foreach (SearchFragment frag in expression.Fragments)
@@ -371,28 +307,17 @@ namespace AVSearch.Model.Results
             }
             var book = ObjectTable.AVXObjects.Mem.Book.Slice(this.BookNum).Span[0];
             var chapters = ObjectTable.AVXObjects.Mem.Chapter.Slice(book.chapterIdx, book.chapterCnt).Span;
-            var start = from;
-            var until = to;
-            if (start.chapter < 1 || start.chapter > book.chapterCnt)
-                return false;
-            if (start.verse < 1 || start.verse > chapters[start.chapter - 1].verseCnt)
-                return false;
-            if (until.verse < 1)
-                return false;
-            if (until.verse > chapters[until.chapter - 1].verseCnt)
-                until.verse = chapters[until.chapter - 1].verseCnt; // we allow 0xFF to represent the last verse of the chapter here
-
             var writ = book.written.Slice(0, (int)book.writCnt).Span;
-            UInt32 bcv = (UInt32)((book.bookNum << 24) | (start.chapter << 16) | (start.verse << 8));
-            for (UInt32 w = 0; writ[(int)w].BCVWc.C < start.chapter || writ[(int)w].BCVWc.V < start.verse; w++)
-                ;
-
             UInt16 span = expression.Settings.SearchSpan;
             int finds = 0;
             for (UInt32 w = 0; w < book.writCnt; /**/)
             {
                 BCVW bcvw = writ[(int)w].BCVWc;
-                bool found = SearchUnquotedUsingSpan(ref book, ref chapters, ref writ, ref expression, in normalizedFragments, in until, in w, in bcvw);
+                if (!expression.Scope.InScope(book.bookNum, bcvw.C))
+                {
+                    continue;
+                }
+                bool found = SearchUnquotedUsingSpan(ref book, ref chapters, ref writ, ref expression, in normalizedFragments, in w, in bcvw);
                 if (found)
                 {
                     finds++;
@@ -412,7 +337,7 @@ namespace AVSearch.Model.Results
             }
             return (finds > 0);
         }
-        public Dictionary<byte, QueryChapter> Chapters { get; private set; }
+    public Dictionary<byte, QueryChapter> Chapters { get; private set; }
 
         public void IncrementHits()
         {
