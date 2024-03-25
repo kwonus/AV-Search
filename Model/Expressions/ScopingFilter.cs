@@ -55,6 +55,14 @@ namespace AVSearch.Model.Expressions
             }
             return null;
         }
+        public bool InScope(byte chapter)
+        {
+            if (this.AmmendedChapters != null)
+            {
+                return this.AmmendedChapters.Contains(chapter);
+            }
+            return (chapter >= this.ChapterFrom) && (chapter <= this.ChapterTo);
+        }
         public static ScopingFilter? CreateDiscreteScope(string spec)
         {
             string[] parts = spec.Split(' ');
@@ -186,15 +194,15 @@ namespace AVSearch.Model.Expressions
             if (this.AmmendedChapters == null)
             {
                 this.AmmendedChapters = new();
-                foreach (byte b in this.Chapters)
-                    this.AmmendedChapters.Add(b);
+                foreach (byte c in this.Chapters)
+                    this.AmmendedChapters.Add(c);
 
                 this.ChapterFrom = 0;
                 this.ChapterTo = 0;
             }
-            foreach (byte b in ammendment.Chapters)
-                if (!this.AmmendedChapters.Contains(b))
-                    this.AmmendedChapters.Add(b);
+            foreach (byte c in ammendment.Chapters)
+                if (!this.AmmendedChapters.Contains(c))
+                    this.AmmendedChapters.Add(c);
 
             return this;
         }

@@ -11,7 +11,7 @@
         public List<SearchFragment> Fragments { get; protected set; }
 
         public ISettings Settings   { get; protected set; }
-        public Dictionary<byte, ScopingFilter> Scope { get; protected set; }
+        public SearchScope Scope    { get; protected set; }
         public bool EmptySelection  { get => string.IsNullOrWhiteSpace(this.Expression) && (this.Scope.Count == 0); }
         public bool IsValid         { get; protected set; }
         public Dictionary<byte, QueryBook> Books { get; protected set; }
@@ -31,40 +31,9 @@
             this.IsValid = false;
         }
 
-        public bool AddScope(byte book)
+        public void AddScope(SearchScope scope)
         {
-            if (book == 0)
-            {
-                this.Books.Clear();
-                for (byte num = 1; num <= 66; num++)
-                {
-                    this.Books[num] = new QueryBook(num);
-                }
-                return true;
-            }
-            else if (book >= 1 && book <= 66)
-            {
-                if (!Books.ContainsKey(book))
-                {
-                    this.Books[book] = new QueryBook(book);
-                }
-                return true;
-            }
-            return false;
-        }
-
-        public bool AddScope(ScopingFilter filter)
-        {
-            byte book = filter.Book;
-
-            if (book >= 1 && book <= 66)
-            {
-                if (!Books.ContainsKey(book))
-                {
-                    Books[book] = new QueryBook(book);
-                }
-            }
-            return false;
+            this.Scope = scope;
         }
         public void IncrementHits()
         {
