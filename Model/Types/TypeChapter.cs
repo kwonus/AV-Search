@@ -7,13 +7,17 @@
 
     public abstract class TypeChapter
     {
-		public byte ChapterNum  { get => 0; }
+		public byte ChapterNum  { get; protected set; }
 		public UInt64 TotalHits { get; protected set; }
         public UInt64 VerseHits { get => 0; }
 
         protected TypeChapter()
         {
             ;
+        }
+        protected TypeChapter(byte num)
+        {
+            this.ChapterNum = num;
         }
 
         public void IncrementHits()

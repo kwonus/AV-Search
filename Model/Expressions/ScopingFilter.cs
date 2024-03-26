@@ -37,6 +37,14 @@ namespace AVSearch.Model.Expressions
             this.Book = book;
             this.AmmendedChapters = null;
 
+            if (cfrom == 0 && cto == 0)
+            {
+                this.ChapterFrom = 1;
+                this.ChapterTo = chapterCnt;
+
+                return;
+            }
+
             if (cfrom >= 1 && cfrom <= chapterCnt)
                 this.ChapterFrom = cfrom;
             else

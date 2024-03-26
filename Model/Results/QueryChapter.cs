@@ -7,9 +7,10 @@ namespace AVSearch.Model.Results
 
     public class QueryChapter : TypeChapter
     {
-        public QueryChapter(byte num) : base()
+        public byte ChapterNum { get; private set; }
+        public QueryChapter(byte num, bool zeroHits = false) : base(num)
         {
-            this.TotalHits = 1;
+            this.TotalHits = (UInt64) (zeroHits ? 0 : 1);
         }
         public bool AddScope(ScopingFilter range)
         {

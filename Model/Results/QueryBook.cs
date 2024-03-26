@@ -6,7 +6,6 @@ namespace AVSearch.Model.Results
     using AVXLib;
     using System;
     using AVXLib.Memory;
-    using System.Reflection.Metadata.Ecma335;
 
     public class QueryBook : TypeBook
     {
@@ -51,6 +50,7 @@ namespace AVSearch.Model.Results
                 byte c = writ[(int)wi].BCVWc.C;
                 if (!expression.Scope.InScope(book.bookNum, c))
                 {
+                    wi += chapters[c-1].writCnt;
                     continue;
                 }
                 QueryMatch match = new(writ[wi].BCVWc, ref expression);
@@ -170,8 +170,11 @@ namespace AVSearch.Model.Results
             for (UInt32 w = 0; w < book.writCnt; w++)
             {
                 BCVW bcvw = writ[(int)w].BCVWc;
-                if (!expression.Scope.InScope(book.bookNum, bcvw.C))
+                byte c = bcvw.C;
+                if (!expression.Scope.InScope(book.bookNum, c))
                 {
+                    w += chapters[c - 1].writCnt;
+                    w --; // because it will be incremented again by the for loop
                     continue;
                 }
                 if (SearchQuotedUsingSpan(ref book, ref chapters, ref writ, ref expression, in normalizedFragments, in w, in bcvw))
@@ -208,6 +211,8 @@ namespace AVSearch.Model.Results
                 byte c = writ[(int)wi].BCVWc.C;
                 if (!expression.Scope.InScope(book.bookNum, c))
                 {
+                    wi += chapters[c - 1].writCnt;
+                    wi--; // because it will be incremented again by the for loop
                     continue;
                 }
                 int f = -1;
@@ -313,8 +318,10 @@ namespace AVSearch.Model.Results
             for (UInt32 w = 0; w < book.writCnt; /**/)
             {
                 BCVW bcvw = writ[(int)w].BCVWc;
-                if (!expression.Scope.InScope(book.bookNum, bcvw.C))
+                byte c = bcvw.C;
+                if (!expression.Scope.InScope(book.bookNum, c))
                 {
+                    w += chapters[c-1].writCnt;
                     continue;
                 }
                 bool found = SearchUnquotedUsingSpan(ref book, ref chapters, ref writ, ref expression, in normalizedFragments, in w, in bcvw);
