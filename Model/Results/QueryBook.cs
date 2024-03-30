@@ -16,16 +16,16 @@ namespace AVSearch.Model.Results
         }
         public bool Search(SearchExpression expression)
         {
-            bool result = (expression.Fragments.Count > 0);
+            bool result = (expression.Fragments.Count > 0) && (expression.Scope.InScope(this.BookNum)) ;
 
             if (result)
             {
                 if (expression.Quoted)
-                    SearchQuoted(expression);
+                    return SearchQuoted(expression);
                 else
-                    SearchUnquoted(expression);
+                    return SearchUnquoted(expression);
             }
-            return result;
+            return false;
         }
 
         private bool SearchQuotedUsingSpan(ref readonly Book book, ref readonly ReadOnlySpan<Chapter> chapters, ref readonly ReadOnlySpan<Written> writ, ref SearchExpression expression, in Dictionary<string, SearchFragment> fragments, in UInt32 w, in BCVW bcvw)
@@ -48,11 +48,6 @@ namespace AVSearch.Model.Results
             while (wi < wend)
             {
                 byte c = writ[(int)wi].BCVWc.C;
-                if (!expression.Scope.InScope(book.bookNum, c))
-                {
-                    wi += chapters[c-1].writCnt;
-                    continue;
-                }
                 QueryMatch match = new(writ[wi].BCVWc, ref expression);
 
                 foreach (SearchFragment fragment in fragments.Values)
@@ -209,12 +204,7 @@ namespace AVSearch.Model.Results
             {
                 byte b = book.bookNum;
                 byte c = writ[(int)wi].BCVWc.C;
-                if (!expression.Scope.InScope(book.bookNum, c))
-                {
-                    wi += chapters[c - 1].writCnt;
-                    wi--; // because it will be incremented again by the for loop
-                    continue;
-                }
+
                 int f = -1;
                 foreach (SearchFragment fragment in fragments.Values)
                 {

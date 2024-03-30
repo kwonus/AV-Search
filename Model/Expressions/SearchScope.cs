@@ -27,7 +27,7 @@ namespace AVSearch.Model.Expressions
         }
         public bool InScope(byte book)
         {
-            return this.ContainsKey(book);
+            return this.Count == 0 || this.ContainsKey(book);
         }
     }
 }
