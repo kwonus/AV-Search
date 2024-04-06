@@ -1,12 +1,9 @@
-﻿using AVXLib;
-using AVXLib.Memory;
-using System;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography.X509Certificates;
-using static System.Net.Mime.MediaTypeNames;
-
-namespace AVSearch.Model.Expressions
+﻿namespace AVSearch.Model.Expressions
 {
+    using AVXLib;
+    using AVXLib.Memory;
+    using System;
+
     public class ScopingFilter
     {
         public byte  Book        { get; private set; }
@@ -17,12 +14,14 @@ namespace AVSearch.Model.Expressions
             foreach (byte c in from chapter in this.Chapters orderby chapter ascending select chapter)
                 yield return c;
         }
-        public virtual bool isCompleteBook
+        public bool IsCompleteBook()
         {
-            get
-            {
-                return this.Chapters.Count == (int) ObjectTable.AVXObjects.Mem.Book.Slice(this.Book, 1).Span[0].chapterCnt;
-            }
+            return this.Chapters.Count == (int) ObjectTable.AVXObjects.Mem.Book.Slice(this.Book, 1).Span[0].chapterCnt;
+        }
+        public ScopingFilter() // for deserialization
+        {
+            this.Book = 0;
+            this.Chapters = new();
         }
         private ScopingFilter(byte book)
         {
@@ -142,7 +141,7 @@ namespace AVSearch.Model.Expressions
             if (this.Book != ammendment.Book)
                 return false;
 
-            if (!this.isCompleteBook)
+            if (!this.IsCompleteBook())
             {
                 foreach (byte c in ammendment.Chapters)
                     if (!this.Chapters.Contains(c))
