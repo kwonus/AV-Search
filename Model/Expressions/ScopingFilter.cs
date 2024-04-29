@@ -78,8 +78,30 @@
         }
         public static byte GetBookNum(string text)
         { 
+            // Is it a numeric representation for the book?
+            int i = 0;
+            for (/**/; i < text.Length; i ++)
+            {
+                if (!char.IsAsciiDigit(text[i]))
+                    break;
+            }
+            if (i == text.Length)
+            {
+                try
+                {
+                    byte num = byte.Parse(text);
+                    if (num >= 1 && num <= 66)
+                        return num;
+                }
+                catch
+                {
+                    ;
+                }
+                return 0;
+            }
             string unspaced = text.Replace(" ", "");
             var books = ObjectTable.AVXObjects.Mem.Book.Slice(0, 67).Span;
+
 
             for (byte b = 1; b <= 66; b++)
             {
