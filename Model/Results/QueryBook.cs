@@ -6,6 +6,7 @@ namespace AVSearch.Model.Results
     using AVXLib;
     using System;
     using AVXLib.Memory;
+    using System.ComponentModel.DataAnnotations;
 
     public class QueryBook : TypeBook
     {
@@ -13,6 +14,19 @@ namespace AVSearch.Model.Results
         {
             this.BookNum = num;
             this.Chapters = new();
+        }
+        public bool Show(SearchExpression expression)
+        {
+            var book = ObjectTable.AVXObjects.Mem.Book.Slice(this.BookNum).Span[0];
+
+            for (byte c = 1; c <= book.chapterCnt; c++)
+            {
+                if (expression.Scope.InScope(book.bookNum, c))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
         public bool Search(SearchExpression expression)
         {
